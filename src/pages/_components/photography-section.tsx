@@ -5,27 +5,27 @@ import { useRef, useState } from "react";
 const photos = [
   {
     url: "https://res.cloudinary.com/dq1u0hfev/image/upload/v1762440308/A9458390-59A0-444C-A314-F57D79D97B5A_rqxl2t.jpg",
-    title: "Mountain Solitude",
+    title: "Sky dump",
     number: "01",
-    year: "2024",
+    year: "2025",
   },
   {
     url: "https://res.cloudinary.com/dq1u0hfev/image/upload/v1762440291/0DCA05E0-E29C-4D56-A3B1-8FC4ABCB2FE9_jnhptb.jpg",
-    title: "Ocean Whispers",
+    title: "Intore dancer",
     number: "02",
-    year: "2024",
+    year: "2025",
   },
   {
     url: "https://res.cloudinary.com/dq1u0hfev/image/upload/v1762440291/3799A371-3C4F-4FDB-8BF7-700E53D4CC02_vbgfmf.jpg",
-    title: "Forest Path",
+    title: "Amazing lights",
     number: "03",
-    year: "2024",
+    year: "2025",
   },
   {
     url: "https://res.cloudinary.com/dq1u0hfev/image/upload/v1762440292/7E39F7A9-307C-4752-9EC6-F86D4BA1BA98_fxgr9w.jpg",
-    title: "Golden Hour",
+    title: "Rwandan Art",
     number: "04",
-    year: "2024",
+    year: "2025",
   },
 ];
 
