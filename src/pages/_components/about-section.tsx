@@ -48,7 +48,7 @@ export default function AboutSection() {
               className="relative aspect-square overflow-hidden bg-muted"
             >
               <img
-                src="https://images.unsplash.com/photo-1502139214982-d0ad755818d8?w=600&q=80"
+                src="https://res.cloudinary.com/dq1u0hfev/image/upload/v1762440297/B08B9B5B-4C43-4C69-9705-94E2F5DD0D3F_mvfyur.jpg"
                 alt="Artist"
                 className="w-full h-full object-cover grayscale"
               />

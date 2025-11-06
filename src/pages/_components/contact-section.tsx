@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { Mail, Instagram, Github } from "lucide-react";
+import { Mail, Instagram, Github ,Link} from "lucide-react";
 
 const socialLinks = [
   {
@@ -18,6 +18,12 @@ const socialLinks = [
     name: "Github",
     icon: Github,
     href: "https://github.com/u-leslie",
+    label: "@uleslie",
+  },
+  {
+    name: "Developer Portfolio",
+    icon: Link,
+    href: "https://uleslie.vercel.app",
     label: "@uleslie",
   },
 ];
@@ -61,7 +67,7 @@ export default function ContactSection() {
             </p>
 
             <motion.a
-              href="mailto:hello@example.com"
+              href="mailto:anneuhiriwe@gmail.com"
               whileHover={{ x: 10 }}
               className="inline-flex items-center gap-4 text-lg uppercase tracking-[0.3em] border-b-2 border-foreground pb-2"
             >
@@ -76,7 +82,7 @@ export default function ContactSection() {
           </motion.div>
 
           {/* Social links */}
-          <div className="grid md:grid-cols-3 gap-8 mb-20">
+          <div className="grid md:grid-cols-4 gap-8 mb-20">
             {socialLinks.map((link, index) => (
               <motion.a
                 key={link.name}

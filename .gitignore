@@ -28,3 +28,4 @@ tsconfig.tsbuildinfo
 
 # Environment variables
 .env*
+convex/

@@ -4,25 +4,25 @@ import { useRef, useState } from "react";
 
 const photos = [
   {
-    url: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&q=80",
+    url: "https://res.cloudinary.com/dq1u0hfev/image/upload/v1762440308/A9458390-59A0-444C-A314-F57D79D97B5A_rqxl2t.jpg",
     title: "Mountain Solitude",
     number: "01",
     year: "2024",
   },
   {
-    url: "https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=1200&q=80",
+    url: "https://res.cloudinary.com/dq1u0hfev/image/upload/v1762440291/0DCA05E0-E29C-4D56-A3B1-8FC4ABCB2FE9_jnhptb.jpg",
     title: "Ocean Whispers",
     number: "02",
     year: "2024",
   },
   {
-    url: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1200&q=80",
+    url: "https://res.cloudinary.com/dq1u0hfev/image/upload/v1762440291/3799A371-3C4F-4FDB-8BF7-700E53D4CC02_vbgfmf.jpg",
     title: "Forest Path",
     number: "03",
     year: "2024",
   },
   {
-    url: "https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?w=1200&q=80",
+    url: "https://res.cloudinary.com/dq1u0hfev/image/upload/v1762440292/7E39F7A9-307C-4752-9EC6-F86D4BA1BA98_fxgr9w.jpg",
     title: "Golden Hour",
     number: "04",
     year: "2024",
@@ -37,14 +37,9 @@ function PhotoCard({ photo, index }: { photo: typeof photos[0]; index: number })
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, y: 60 }}
+      initial={{ opacity: 0, y: 30 }}
       animate={isInView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.8, delay: index * 0.2 }}
-      className={`${
-        index % 2 === 0 ? "md:col-span-7" : "md:col-span-5"
-      } ${
-        index === 1 ? "md:col-start-8" : ""
-      }`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -89,7 +84,10 @@ function PhotoCard({ photo, index }: { photo: typeof photos[0]; index: number })
 
 export default function PhotographySection() {
   return (
-    <section id="photography" className="min-h-screen py-32 md:py-40 bg-muted/20">
+    <section
+      id="photography"
+      className="py-6 bg-muted/20"
+    >
       <div className="container mx-auto px-4">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -110,7 +108,7 @@ export default function PhotographySection() {
         </motion.div>
 
         {/* Masonry grid */}
-        <div className="grid md:grid-cols-12 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           {photos.map((photo, index) => (
             <PhotoCard key={index} photo={photo} index={index} />
           ))}

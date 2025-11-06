@@ -19,7 +19,6 @@
     /* Linting */
     "strict": true,
 
-    "baseUrl": ".",
     "paths": {
       "@/convex/*": ["./convex/*"],
       "@/*": ["./src/*"]
