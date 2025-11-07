@@ -100,7 +100,7 @@ export default function HeroSection() {
                 >
                   STANZAS
                   <motion.div
-                    className="absolute bottom-2 left-0 right-0 h-1 bg-foreground"
+                    className="absolute bottom-[-0.4rem] md:bottom-2 left-0 right-0 h-[2px] md:h-1 bg-foreground"
                     initial={{ scaleX: 0 }}
                     animate={{ scaleX: 1 }}
                     transition={{ duration: 1, delay: 1.5 }}
@@ -115,7 +115,7 @@ export default function HeroSection() {
               transition={{ duration: 0.8, delay: 1.8 }}
               className="flex justify-end"
             >
-              <p className="text-xl md:text-2xl max-w-md text-right font-light tracking-wider text-foreground/80">
+              <p className="text-lg sm:text-xl md:text-2xl max-w-md text-right font-light tracking-wider text-foreground/80">
                 A VISUAL EXPLORATION OF POETRY & PHOTOGRAPHY
               </p>
             </motion.div>
