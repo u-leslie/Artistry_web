@@ -30,16 +30,18 @@ export default function Navbar() {
     if (location.pathname === "/") {
       const hash = window.location.hash;
       if (hash) {
-        const element = document.querySelector(hash);
-        if (element) {
-          // Small delay to ensure page has rendered
-          setTimeout(() => {
+        // Small delay to ensure page has rendered
+        const timeoutId = setTimeout(() => {
+          const element = document.querySelector(hash);
+          if (element) {
             element.scrollIntoView({ behavior: "smooth" });
-          }, 100);
-        }
+          }
+        }, 100);
+        
+        return () => clearTimeout(timeoutId);
       }
     }
-  }, [location.pathname]);
+  }, [location.pathname, location.hash]);
 
   const scrollToSection = (href: string) => {
     setMobileMenuOpen(false);

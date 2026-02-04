@@ -5,6 +5,9 @@ import { Link } from "react-router-dom";
 import { usePhotos, type Photo } from "@/hooks/use-photos";
 import { ArtistryLoader } from "@/components/artistry-loader.tsx";
 
+// Featured photo titles - defined outside component to prevent re-renders
+const FEATURED_PHOTO_TITLES = ["Art fueled", "shadows", "face card", "cozy place"] as const;
+
 function PhotoCard({ photo, index }: { photo: Photo; index: number }) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
@@ -110,28 +113,16 @@ export default function PhotographySection() {
   }
 
   // Get specific photos by title
-  const featuredPhotoTitles = ["Art fueled", "shadows", "face card", "cozy place"];
-  
   const featuredPhotos = useMemo(() => {
-    if (!photos) return [];
+    if (!photos || photos.length === 0) return [];
     
     // Find photos matching the featured titles (case-insensitive)
-    const found = featuredPhotoTitles
-      .map(title => 
-        photos.find(photo => 
-          photo.title.toLowerCase().trim() === title.toLowerCase().trim()
-        )
-      )
-      .filter((photo): photo is Photo => photo !== undefined);
-    
     // Maintain the order specified by the user
-    return featuredPhotoTitles
-      .map(title => 
-        found.find(photo => 
-          photo.title.toLowerCase().trim() === title.toLowerCase().trim()
-        )
+    return FEATURED_PHOTO_TITLES.map(title => 
+      photos.find(photo => 
+        photo.title.toLowerCase().trim() === title.toLowerCase().trim()
       )
-      .filter((photo): photo is Photo => photo !== undefined);
+    ).filter((photo): photo is Photo => photo !== undefined);
   }, [photos]);
 
   return (
