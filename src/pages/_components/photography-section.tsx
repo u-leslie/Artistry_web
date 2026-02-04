@@ -1,12 +1,21 @@
 import { motion } from "motion/react";
 import { useInView } from "motion/react";
-import { useRef, useState, useMemo } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { usePhotos, type Photo } from "@/hooks/use-photos";
 import { ArtistryLoader } from "@/components/artistry-loader.tsx";
 
-// Featured photo titles - defined outside component to prevent re-renders
 const FEATURED_PHOTO_TITLES = ["Art fueled", "shadows", "face card", "cozy place"] as const;
+
+function getFeaturedPhotos(photos: Photo[]): Photo[] {
+  if (!photos || photos.length === 0) return [];
+  
+  return FEATURED_PHOTO_TITLES.map(title => 
+    photos.find(photo => 
+      photo?.title?.toLowerCase().trim() === title.toLowerCase().trim()
+    )
+  ).filter((photo): photo is Photo => photo !== undefined);
+}
 
 function PhotoCard({ photo, index }: { photo: Photo; index: number }) {
   const ref = useRef(null);
@@ -86,7 +95,7 @@ export default function PhotographySection() {
             <div className="text-center">
               <p className="text-destructive mb-2">Error loading photos</p>
               <p className="text-sm text-muted-foreground">
-                Please check your Sanity configuration in .env file
+           Check back later, Leslie is still working on the photos -.- .
               </p>
             </div>
           </div>
@@ -103,7 +112,7 @@ export default function PhotographySection() {
             <div className="text-center">
               <p className="text-muted-foreground mb-2">No photos found</p>
               <p className="text-sm text-muted-foreground">
-                Add photos in your Sanity Studio to see them here
+                Check back later, Leslie is still working on the photos -.- .
               </p>
             </div>
           </div>
@@ -112,18 +121,8 @@ export default function PhotographySection() {
     );
   }
 
-  // Get specific photos by title
-  const featuredPhotos = useMemo(() => {
-    if (!photos || photos.length === 0) return [];
-    
-    // Find photos matching the featured titles (case-insensitive)
-    // Maintain the order specified by the user
-    return FEATURED_PHOTO_TITLES.map(title => 
-      photos.find(photo => 
-        photo.title.toLowerCase().trim() === title.toLowerCase().trim()
-      )
-    ).filter((photo): photo is Photo => photo !== undefined);
-  }, [photos]);
+  // Get specific photos by title 
+  const featuredPhotos = photos ? getFeaturedPhotos(photos) : [];
 
   return (
     <section

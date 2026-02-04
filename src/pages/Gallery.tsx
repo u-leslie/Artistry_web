@@ -87,13 +87,15 @@ export default function Gallery() {
   const itemsPerPage = 8;
 
   // Calculate pagination
+  const photosLength = photos?.length ?? 0;
+  
   const totalPages = useMemo(() => {
-    if (!photos) return 0;
-    return Math.ceil(photos.length / itemsPerPage);
-  }, [photos, itemsPerPage]);
+    if (photosLength === 0) return 0;
+    return Math.ceil(photosLength / itemsPerPage);
+  }, [photosLength, itemsPerPage]);
 
   const paginatedPhotos = useMemo(() => {
-    if (!photos) return [];
+    if (!photos || photos.length === 0) return [];
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     return photos.slice(startIndex, endIndex);
