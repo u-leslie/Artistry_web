@@ -29,3 +29,10 @@ tsconfig.tsbuildinfo
 # Environment variables
 .env*
 convex/
+
+# Sanity Studio
+sanity/dist/
+sanity/.sanity/
+sanity/node_modules/
+
+.pnpm-store/

@@ -21,7 +21,7 @@ const socialLinks = [
     label: "@uleslie",
   },
   {
-    name: "Developer Portfolio",
+    name: "Works",
     icon: Link,
     href: "https://uleslie.vercel.app",
     label: "@uleslie",

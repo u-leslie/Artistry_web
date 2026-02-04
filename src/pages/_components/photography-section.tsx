@@ -1,35 +1,11 @@
 import { motion } from "motion/react";
 import { useInView } from "motion/react";
-import { useRef, useState } from "react";
+import { useRef, useState, useMemo } from "react";
+import { Link } from "react-router-dom";
+import { usePhotos, type Photo } from "@/hooks/use-photos";
+import { ArtistryLoader } from "@/components/artistry-loader.tsx";
 
-const photos = [
-  {
-    url: "https://res.cloudinary.com/dq1u0hfev/image/upload/v1762440308/A9458390-59A0-444C-A314-F57D79D97B5A_rqxl2t.jpg",
-    title: "Sky dump",
-    number: "01",
-    year: "2025",
-  },
-  {
-    url: "https://res.cloudinary.com/dq1u0hfev/image/upload/v1762440291/0DCA05E0-E29C-4D56-A3B1-8FC4ABCB2FE9_jnhptb.jpg",
-    title: "Intore dancer",
-    number: "02",
-    year: "2025",
-  },
-  {
-    url: "https://res.cloudinary.com/dq1u0hfev/image/upload/v1762440291/3799A371-3C4F-4FDB-8BF7-700E53D4CC02_vbgfmf.jpg",
-    title: "Amazing lights",
-    number: "03",
-    year: "2025",
-  },
-  {
-    url: "https://res.cloudinary.com/dq1u0hfev/image/upload/v1762440292/7E39F7A9-307C-4752-9EC6-F86D4BA1BA98_fxgr9w.jpg",
-    title: "Rwandan Art",
-    number: "04",
-    year: "2025",
-  },
-];
-
-function PhotoCard({ photo, index }: { photo: typeof photos[0]; index: number }) {
+function PhotoCard({ photo, index }: { photo: Photo; index: number }) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
   const [isHovered, setIsHovered] = useState(false);
@@ -46,16 +22,18 @@ function PhotoCard({ photo, index }: { photo: typeof photos[0]; index: number })
       <div className="space-y-4">
         {/* Image */}
         <div className="relative  overflow-hidden bg-muted">
-          <motion.img
-            src={photo.url}
-            alt={photo.title}
-            className="w-full h-full object-cover grayscale"
-            animate={{
-              scale: isHovered ? 1.05 : 1,
-              filter: isHovered ? "grayscale(0%)" : "grayscale(100%)",
-            }}
-            transition={{ duration: 0.6 }}
-          />
+          {photo.url && (
+            <motion.img
+              src={photo.url}
+              alt={photo.title}
+              className="w-full h-full object-cover grayscale"
+              animate={{
+                scale: isHovered ? 1.05 : 1,
+                filter: isHovered ? "grayscale(0%)" : "grayscale(100%)",
+              }}
+              transition={{ duration: 0.6 }}
+            />
+          )}
 
           <motion.div
             initial={{ opacity: 0 }}
@@ -83,6 +61,79 @@ function PhotoCard({ photo, index }: { photo: typeof photos[0]; index: number })
 }
 
 export default function PhotographySection() {
+  const { data: photos, isLoading, error } = usePhotos();
+
+  if (isLoading) {
+    return (
+      <section id="photography" className="py-6 bg-muted/20">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <ArtistryLoader />
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section id="photography" className="py-6 bg-muted/20">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <p className="text-destructive mb-2">Error loading photos</p>
+              <p className="text-sm text-muted-foreground">
+                Please check your Sanity configuration in .env file
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (!photos || photos.length === 0) {
+    return (
+      <section id="photography" className="py-6 bg-muted/20">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <p className="text-muted-foreground mb-2">No photos found</p>
+              <p className="text-sm text-muted-foreground">
+                Add photos in your Sanity Studio to see them here
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // Get specific photos by title
+  const featuredPhotoTitles = ["Art fueled", "shadows", "face card", "cozy place"];
+  
+  const featuredPhotos = useMemo(() => {
+    if (!photos) return [];
+    
+    // Find photos matching the featured titles (case-insensitive)
+    const found = featuredPhotoTitles
+      .map(title => 
+        photos.find(photo => 
+          photo.title.toLowerCase().trim() === title.toLowerCase().trim()
+        )
+      )
+      .filter((photo): photo is Photo => photo !== undefined);
+    
+    // Maintain the order specified by the user
+    return featuredPhotoTitles
+      .map(title => 
+        found.find(photo => 
+          photo.title.toLowerCase().trim() === title.toLowerCase().trim()
+        )
+      )
+      .filter((photo): photo is Photo => photo !== undefined);
+  }, [photos]);
+
   return (
     <section
       id="photography"
@@ -107,11 +158,18 @@ export default function PhotographySection() {
           </p>
         </motion.div>
 
-        {/* Masonry grid */}
+        {/* Show 4 featured photos */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {photos.map((photo, index) => (
-            <PhotoCard key={index} photo={photo} index={index} />
-          ))}
+          {featuredPhotos.length > 0 ? (
+            featuredPhotos.map((photo, index) => (
+              <PhotoCard key={photo._id} photo={photo} index={index} />
+            ))
+          ) : (
+            // Fallback: show first 4 photos if featured ones aren't found
+            photos.slice(0, 4).map((photo, index) => (
+              <PhotoCard key={photo._id} photo={photo} index={index} />
+            ))
+          )}
         </div>
 
         {/* View all link */}
@@ -122,19 +180,21 @@ export default function PhotographySection() {
           transition={{ duration: 0.8, delay: 0.8 }}
           className="mt-20 flex justify-end"
         >
-          <motion.button
-            whileHover={{ x: 10 }}
-            className="flex items-center gap-4 text-sm uppercase tracking-[0.3em] font-light"
-          >
-            View Full Gallery
-            <motion.div
-              className="h-px w-16 bg-foreground"
-              initial={{ scaleX: 0 }}
-              whileInView={{ scaleX: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
-            />
-          </motion.button>
+          <Link to="/gallery">
+            <motion.button
+              whileHover={{ x: 10 }}
+              className="flex items-center gap-4 text-sm uppercase tracking-[0.3em] font-light"
+            >
+              View Full Gallery
+              <motion.div
+                className="h-px w-16 bg-foreground"
+                initial={{ scaleX: 0 }}
+                whileInView={{ scaleX: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.8 }}
+              />
+            </motion.button>
+          </Link>
         </motion.div>
       </div>
     </section>

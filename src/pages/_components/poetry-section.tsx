@@ -1,36 +1,10 @@
 import { motion } from "motion/react";
 import { useInView } from "motion/react";
 import { useRef } from "react";
+import { usePoems, type Poem } from "@/hooks/use-poems";
+import { ArtistryLoader } from "@/components/artistry-loader.tsx";
 
-const poems = [
-  {
-    number: "01",
-    title: "Light in the Shadows",
-    content: `When the world feels cold and gray,
-A quiet voice shows me the way,
-It lifts my heart, it calms my mind,
-A gentle peace I try to find.`,
-  },
-  {
-    number: "02",
-    title: "Moments Like Rain",
-    content: `Raindrops fall on empty streets,
-Soft and slow like gentle beats,
-I watch, I listen, I breathe it in,
-A quiet place where life begins.`,
-  },
-  {
-    number: "03",
-    title: "Through the Lens",
-    content: `I hold the camera, see the light,
-A frozen smile, a bird in flight,
-Each picture tells a story true,
-A little world I share with you.`,
-  },
-];
-
-
-function PoemCard({ poem, index }: { poem: typeof poems[0]; index: number }) {
+function PoemCard({ poem, index }: { poem: Poem; index: number }) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
 
@@ -78,6 +52,54 @@ function PoemCard({ poem, index }: { poem: typeof poems[0]; index: number }) {
 }
 
 export default function PoetrySection() {
+  const { data: poems, isLoading, error } = usePoems();
+
+  if (isLoading) {
+    return (
+      <section id="poetry" className="min-h-screen py-32 md:py-40">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <ArtistryLoader />
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section id="poetry" className="min-h-screen py-32 md:py-40">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <p className="text-destructive mb-2">Error loading poems</p>
+              <p className="text-sm text-muted-foreground">
+                Leslie is writing poems or probably coding -.- .
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (!poems || poems.length === 0) {
+    return (
+      <section id="poetry" className="min-h-screen py-32 md:py-40">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <p className="text-muted-foreground mb-2">No poems found</p>
+              <p className="text-sm text-muted-foreground">
+                Leslie is writing poems or probably coding -.- .
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section id="poetry" className="min-h-screen py-32 md:py-40">
       <div className="container mx-auto px-4">
@@ -103,7 +125,7 @@ export default function PoetrySection() {
         {/* Poems list */}
         <div className="max-w-6xl">
           {poems.map((poem, index) => (
-            <PoemCard key={poem.number} poem={poem} index={index} />
+            <PoemCard key={poem._id} poem={poem} index={index} />
           ))}
         </div>
 

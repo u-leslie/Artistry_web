@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ThemeToggle } from "../../components/theme-toogle";
 
 const navItems = [
@@ -13,6 +14,8 @@ const navItems = [
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -22,11 +25,45 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Handle scroll to section after navigation to home page
+  useEffect(() => {
+    if (location.pathname === "/") {
+      const hash = window.location.hash;
+      if (hash) {
+        const element = document.querySelector(hash);
+        if (element) {
+          // Small delay to ensure page has rendered
+          setTimeout(() => {
+            element.scrollIntoView({ behavior: "smooth" });
+          }, 100);
+        }
+      }
+    }
+  }, [location.pathname]);
+
   const scrollToSection = (href: string) => {
+    setMobileMenuOpen(false);
+    
+    // If we're not on the home page, navigate there first, then scroll
+    if (location.pathname !== "/") {
+      navigate("/");
+      // Wait for navigation, then set hash and scroll
+      setTimeout(() => {
+        window.location.hash = href;
+        const element = document.querySelector(href);
+        if (element) {
+          setTimeout(() => {
+            element.scrollIntoView({ behavior: "smooth" });
+          }, 100);
+        }
+      }, 50);
+      return;
+    }
+
+    // If we're on the home page, just scroll
     const element = document.querySelector(href);
     if (element) {
       element.scrollIntoView({ behavior: "smooth" });
-      setMobileMenuOpen(false);
     }
   };
 
