@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { Mail, Instagram, Github ,Link} from "lucide-react";
+import { Mail, Instagram, Github, Link, Star } from "lucide-react";
 
 const socialLinks = [
   {
@@ -121,11 +121,24 @@ export default function ContactSection() {
               <div className="text-sm text-muted-foreground">
                 © {new Date().getFullYear()} Artistry. All rights reserved.
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-foreground rounded-full animate-pulse" />
-                <span className="text-xs uppercase tracking-wider text-muted-foreground">
-                  Shots meeting stanzas 
-                </span>
+              <div className="flex items-center gap-6">
+                <motion.a
+                  href="https://github.com/u-leslie/Artistry_web"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group"
+                >
+                  <Star className="w-4 h-4 group-hover:fill-foreground transition-all" />
+                  <span className="uppercase text-xs tracking-wider">Star on GitHub</span>
+                </motion.a>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-foreground rounded-full animate-pulse" />
+                  <span className="text-xs uppercase tracking-wider text-muted-foreground">
+                    Shots meeting stanzas 
+                  </span>
+                </div>
               </div>
             </div>
           </motion.footer>
