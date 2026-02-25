@@ -23,7 +23,7 @@ const socialLinks = [
   {
     name: "Works",
     icon: Link,
-    href: "https://uleslie.vercel.app",
+    href: "https://lslie.space/",
     label: "@uleslie",
   },
 ];
