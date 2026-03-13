@@ -66,7 +66,7 @@ export default function AboutSection() {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="space-y-8 flex flex-col justify-center"
           >
-            <div className="space-y-6 text-lg leading-relaxed text-foreground/80">
+            <div className="space-y-6 text-xl font-serif leading-relaxed text-foreground/80">
               <p>
                 I’m Leslie, a software developer by profession, but beyond the
                 code, I see the world through a different lens. Poetry and
