@@ -34,5 +34,6 @@ export type YtPlayerLike = {
   playVideo: () => void;
   mute: () => void;
   unMute: () => void;
+  setVolume?: (volume: number) => void;
   destroy: () => void;
 };

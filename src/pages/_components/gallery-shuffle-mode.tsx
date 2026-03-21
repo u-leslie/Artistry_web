@@ -144,6 +144,11 @@ export function GalleryShuffleMode({
           rel: 0,
           loop: 1,
           playlist: youtubeVideoId,
+          enablejsapi: 1,
+          fs: 0,
+          ...(typeof window !== "undefined" && window.location.origin
+            ? { origin: window.location.origin }
+            : {}),
         },
         events: {
           onReady: (e: { target: YtPlayerLike }) => {
@@ -151,10 +156,17 @@ export function GalleryShuffleMode({
             const p = e.target;
             ytPlayerRef.current = p;
             setYtPlayerReady(true);
-            if (musicMutedRef.current) p.mute();
-            else p.unMute();
-            if (pausedRef.current) p.pauseVideo();
-            else p.playVideo();
+            try {
+              if (musicMutedRef.current) p.mute();
+              else {
+                p.unMute();
+                p.setVolume?.(100);
+              }
+              if (pausedRef.current) p.pauseVideo();
+              else p.playVideo();
+            } catch {
+              /* Mobile may block until a tap — user uses “Tap to enable audio” */
+            }
           },
         },
       });
@@ -272,6 +284,30 @@ export function GalleryShuffleMode({
     setProgressKey((k) => k + 1);
   }, []);
 
+  /** iOS/Android require unmute/play inside the same user gesture as the tap — not in useEffect. */
+  const toggleMusicFromUser = useCallback(() => {
+    const p = ytPlayerRef.current;
+    if (!youtubeVideoId || !p) return;
+    setMusicMuted((m) => {
+      if (m) {
+        try {
+          p.setVolume?.(100);
+          p.unMute();
+          if (!pausedRef.current) p.playVideo();
+        } catch {
+          /* ignore */
+        }
+        return false;
+      }
+      try {
+        p.mute();
+      } catch {
+        /* ignore */
+      }
+      return true;
+    });
+  }, [youtubeVideoId]);
+
   useLayoutEffect(() => {
     if (!open) {
       try {
@@ -355,12 +391,12 @@ export function GalleryShuffleMode({
       if (e.key === "m" || e.key === "M") {
         if (!youtubeVideoId) return;
         e.preventDefault();
-        setMusicMuted((m) => !m);
+        toggleMusicFromUser();
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, close, phase, isLast, total, youtubeVideoId]);
+  }, [open, close, phase, isLast, total, youtubeVideoId, toggleMusicFromUser]);
 
   const swipeRef = useRef<{ x: number; t: number } | null>(null);
   const onPointerDown = (e: React.PointerEvent) => {
@@ -556,10 +592,19 @@ export function GalleryShuffleMode({
       <footer className="relative z-10 shrink-0 px-4 pb-6 pt-2 md:px-10 md:pb-10">
         {phase === "playing" && (
           <>
-            {youtubeVideoId && musicMuted ? (
-              <p className="mb-3 text-center font-mono text-[10px] uppercase tracking-[0.22em] text-[#a8987a]/90">
-                Tap the speaker (left) or press M to turn on sound
-              </p>
+            {youtubeVideoId && musicMuted && ytPlayerReady && phase === "playing" ? (
+              <>
+                <button
+                  type="button"
+                  onClick={toggleMusicFromUser}
+                  className="mb-3 w-full rounded-lg border border-[#a8987a]/60 bg-[#a8987a]/15 py-3.5 font-mono text-[11px] uppercase tracking-[0.22em] text-[#fafaf9] transition-colors active:bg-[#a8987a]/25 md:hidden"
+                >
+                  Tap to enable audio
+                </button>
+                <p className="mb-3 hidden text-center font-mono text-[10px] uppercase tracking-[0.22em] text-[#a8987a]/90 md:block">
+                  Tap the speaker (left) or press M to turn on sound
+                </p>
+              </>
             ) : null}
             <div className="mb-4 h-1 w-full overflow-hidden rounded-full bg-[#292524]">
               <div
@@ -581,7 +626,7 @@ export function GalleryShuffleMode({
                 {youtubeVideoId ? (
                   <motion.button
                     type="button"
-                    onClick={() => setMusicMuted((m) => !m)}
+                    onClick={toggleMusicFromUser}
                     whileTap={{ scale: 0.95 }}
                     className={`rounded-full border p-2.5 text-[#d6d3d1] transition-colors hover:border-[#57534e] ${
                       musicMuted
