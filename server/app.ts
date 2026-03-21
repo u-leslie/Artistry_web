@@ -9,6 +9,7 @@ import { subscribersToCsv, subscribersToHtmlPage } from "./admin-view.ts";
 import { welcomeEmailHtml, sendResendEmail } from "./emails.ts";
 import { processDueDigestEmails, queueDigestFromSanityEvent } from "./process-digest.ts";
 import { readStore, upsertSubscriber } from "./store.ts";
+import { getSiteUrl } from "./site-url.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
@@ -18,14 +19,6 @@ const subscribeSchema = z.object({
   email: z.string().email(),
   name: z.string().max(160).optional(),
 });
-
-function getSiteUrl() {
-  return (
-    process.env.SITE_URL?.replace(/\/$/, "") ||
-    process.env.VITE_SITE_URL?.replace(/\/$/, "") ||
-    "http://localhost:5173"
-  );
-}
 
 export function createApp(): Express {
   const app = express();

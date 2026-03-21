@@ -7,14 +7,7 @@ import {
 import { computeDigestSendAt } from "./digest-schedule.ts";
 import { getSanityServer, photoUrlFor } from "./sanity-server.ts";
 import { newContentEmailHtml, sendResendEmail } from "./emails.ts";
-
-function getSiteUrl() {
-  return (
-    process.env.SITE_URL?.replace(/\/$/, "") ||
-    process.env.VITE_SITE_URL?.replace(/\/$/, "") ||
-    "http://localhost:5173"
-  );
-}
+import { getSiteUrl } from "./site-url.ts";
 
 export function queueDigestFromSanityEvent(
   publishedAt: Date,
