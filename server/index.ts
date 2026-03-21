@@ -9,7 +9,12 @@ app.listen(port, () => {
   console.log(`[artistry-api] listening on http://localhost:${port}`);
 });
 
-/** Align tick to clock in this zone (e.g. :00, :10, :20 …). */
+/**
+ * In-process sweep every 10 minutes — only runs while this Node process is awake.
+ * On Render free (and similar), the instance sleeps when idle, so this schedule often
+ * does not fire on time. Use an external scheduler (e.g. cron-job.org) POSTing to
+ * /api/cron/digest with CRON_SECRET so something wakes the service and sends due digests.
+ */
 const tz = process.env.DIGEST_TIMEZONE ?? "America/New_York";
 cron.schedule(
   "*/10 * * * *",
