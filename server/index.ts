@@ -9,9 +9,10 @@ app.listen(port, () => {
   console.log(`[artistry-api] listening on http://localhost:${port}`);
 });
 
+/** Align tick to clock in this zone (e.g. :00, :10, :20 …). */
 const tz = process.env.DIGEST_TIMEZONE ?? "America/New_York";
 cron.schedule(
-  "0 10 * * *",
+  "*/10 * * * *",
   async () => {
     try {
       const result = await processDueDigestEmails();

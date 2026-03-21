@@ -537,7 +537,7 @@ export function GalleryShuffleMode({
               <motion.img
                 src={displayUrl}
                 alt={current.title}
-                className={`max-h-full max-w-full object-contain shadow-2xl shadow-black/50 transition-[filter,transform] duration-500 ${
+                className={`max-h-full max-w-full object-contain grayscale shadow-2xl shadow-black/50 transition-[filter,transform] duration-500 ${
                   !hiResReady && highUrl ? "blur-[0.5px] opacity-95" : ""
                 }`}
                 decoding="async"
