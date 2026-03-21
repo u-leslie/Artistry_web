@@ -20,10 +20,11 @@ import {
   X,
 } from "lucide-react";
 import type { Photo } from "@/hooks/use-photos";
+import { getShuffleYouTubeVideoId } from "@/lib/shuffle-youtube.ts";
 import {
-  buildYouTubeEmbedSrc,
-  getShuffleYouTubeVideoId,
-} from "@/lib/shuffle-youtube.ts";
+  loadYouTubeIframeAPI,
+  type YtPlayerLike,
+} from "@/lib/youtube-iframe-api.ts";
 import { urlFor } from "@/lib/sanity";
 
 /** Time each photo stays on screen (progress bar + auto-advance). */
@@ -68,6 +69,11 @@ export function GalleryShuffleMode({
 }: GalleryShuffleModeProps) {
   const reduceMotion = useReducedMotion();
   const containerRef = useRef<HTMLDivElement>(null);
+  const ytHostRef = useRef<HTMLDivElement>(null);
+  const ytPlayerRef = useRef<YtPlayerLike | null>(null);
+  const [ytPlayerReady, setYtPlayerReady] = useState(false);
+  const pausedRef = useRef(false);
+  const musicMutedRef = useRef(false);
   const youtubeVideoId = useMemo(() => getShuffleYouTubeVideoId(), []);
 
   const [session, setSession] = useState(0);
@@ -81,7 +87,107 @@ export function GalleryShuffleMode({
   const [progressKey, setProgressKey] = useState(0);
   const [musicMuted, setMusicMuted] = useState(false);
   const [hiResReady, setHiResReady] = useState(false);
-  const prevPausedRef = useRef(false);
+  /** Wall-clock for current slide; paused time excluded via pauseAccumRef + pauseAtRef. */
+  const slideStartRef = useRef(Date.now());
+  const pauseAccumRef = useRef(0);
+  const pauseAtRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    pausedRef.current = paused;
+  }, [paused]);
+
+  useEffect(() => {
+    musicMutedRef.current = musicMuted;
+  }, [musicMuted]);
+
+  useEffect(() => {
+    if (!open || !youtubeVideoId) {
+      setYtPlayerReady(false);
+      try {
+        ytPlayerRef.current?.destroy();
+      } catch {
+        /* ignore */
+      }
+      ytPlayerRef.current = null;
+      return;
+    }
+
+    let cancelled = false;
+
+    loadYouTubeIframeAPI().then(() => {
+      if (cancelled) return;
+
+      let rafAttempts = 0;
+      const mount = () => {
+        if (cancelled) return;
+        const host = ytHostRef.current;
+        if (!host) {
+          if (rafAttempts++ < 120) requestAnimationFrame(mount);
+          return;
+        }
+
+        const YT = (
+          window as unknown as {
+            YT: { Player: new (el: HTMLElement, opts: unknown) => void };
+          }
+        ).YT;
+
+        new YT.Player(host, {
+        videoId: youtubeVideoId,
+        width: 1,
+        height: 1,
+        playerVars: {
+          autoplay: 1,
+          controls: 0,
+          modestbranding: 1,
+          playsinline: 1,
+          rel: 0,
+          loop: 1,
+          playlist: youtubeVideoId,
+        },
+        events: {
+          onReady: (e: { target: YtPlayerLike }) => {
+            if (cancelled) return;
+            const p = e.target;
+            ytPlayerRef.current = p;
+            setYtPlayerReady(true);
+            if (musicMutedRef.current) p.mute();
+            else p.unMute();
+            if (pausedRef.current) p.pauseVideo();
+            else p.playVideo();
+          },
+        },
+      });
+      };
+
+      mount();
+    });
+
+    return () => {
+      cancelled = true;
+      setYtPlayerReady(false);
+      try {
+        ytPlayerRef.current?.destroy();
+      } catch {
+        /* ignore */
+      }
+      ytPlayerRef.current = null;
+    };
+  }, [open, youtubeVideoId]);
+
+  useEffect(() => {
+    const p = ytPlayerRef.current;
+    if (!open || !youtubeVideoId || !ytPlayerReady || !p) return;
+    if (paused) p.pauseVideo();
+    else p.playVideo();
+  }, [open, youtubeVideoId, ytPlayerReady, paused]);
+
+  useEffect(() => {
+    const p = ytPlayerRef.current;
+    if (!open || !youtubeVideoId || !ytPlayerReady || !p) return;
+    if (musicMuted) p.mute();
+    else p.unMute();
+  }, [open, youtubeVideoId, ytPlayerReady, musicMuted]);
 
   useEffect(() => {
     if (!open) return;
@@ -95,11 +201,11 @@ export function GalleryShuffleMode({
   }, [open, youtubeVideoId]);
 
   useEffect(() => {
-    if (open && prevPausedRef.current && !paused) {
-      setProgressKey((k) => k + 1);
-    }
-    prevPausedRef.current = paused;
-  }, [paused, open]);
+    if (!open || phase === "done") return;
+    slideStartRef.current = Date.now();
+    pauseAccumRef.current = 0;
+    pauseAtRef.current = null;
+  }, [index, open, phase]);
 
   useEffect(() => {
     if (!open) return;
@@ -191,7 +297,23 @@ export function GalleryShuffleMode({
   }, [open]);
 
   useEffect(() => {
-    if (!open || phase === "done" || paused || total === 0) return;
+    if (!open || phase === "done" || total === 0) return;
+
+    if (paused) {
+      if (pauseAtRef.current === null) {
+        pauseAtRef.current = Date.now();
+      }
+      return;
+    }
+
+    if (pauseAtRef.current !== null) {
+      pauseAccumRef.current += Date.now() - pauseAtRef.current;
+      pauseAtRef.current = null;
+    }
+
+    const elapsed =
+      Date.now() - slideStartRef.current - pauseAccumRef.current;
+    const remaining = Math.max(0, SLIDE_MS - elapsed);
 
     const t = window.setTimeout(() => {
       if (isLast) {
@@ -200,7 +322,7 @@ export function GalleryShuffleMode({
       }
       setIndex((i) => i + 1);
       setProgressKey((k) => k + 1);
-    }, SLIDE_MS);
+    }, remaining);
 
     return () => window.clearTimeout(t);
   }, [open, phase, paused, index, isLast, total]);
@@ -288,15 +410,10 @@ export function GalleryShuffleMode({
       />
 
       {youtubeVideoId ? (
-        <iframe
-          key={`yt-${youtubeVideoId}-${musicMuted}-${session}`}
-          title="Ambient music"
-          src={buildYouTubeEmbedSrc(youtubeVideoId, {
-            muted: musicMuted,
-            loop: true,
-          })}
-          className="pointer-events-none fixed left-0 top-0 h-px w-px opacity-0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        <div
+          ref={ytHostRef}
+          className="pointer-events-none fixed left-0 top-0 h-px w-px overflow-hidden opacity-0"
+          aria-hidden
         />
       ) : null}
 
