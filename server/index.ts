@@ -10,10 +10,9 @@ app.listen(port, () => {
 });
 
 /**
- * In-process sweep every 10 minutes — only runs while this Node process is awake.
- * On Render free (and similar), the instance sleeps when idle, so this schedule often
- * does not fire on time. Use an external scheduler (e.g. cron-job.org) POSTing to
- * /api/cron/digest with CRON_SECRET so something wakes the service and sends due digests.
+ * Backup sweep every 10 minutes (when the process is awake). Digests primarily send
+ * after DIGEST_DEBOUNCE_MS quiet time following a publish (webhook calls processDueDigestEmails).
+ * On Render free, use an external POST to /api/cron/digest with CRON_SECRET if the instance slept.
  */
 const tz = process.env.DIGEST_TIMEZONE ?? "America/New_York";
 cron.schedule(

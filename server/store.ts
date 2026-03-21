@@ -19,6 +19,8 @@ export type Subscriber = {
 export type StoreData = {
   subscribers: Subscriber[];
   pendingDigest: PendingDigestItem[];
+  /** ISO time — do not send digest until this moment (rolling debounce after each publish). */
+  digestFlushAt?: string;
 };
 
 const defaultStore: StoreData = {
@@ -77,7 +79,7 @@ export function readStore(): StoreData {
     if (subscribers.length !== rawSubs.length) {
       writeStore(data);
     }
-    return data;
+    return migrateLegacyDigest(data);
   } catch {
     return structuredClone(defaultStore);
   }
@@ -86,6 +88,21 @@ export function readStore(): StoreData {
 export function writeStore(data: StoreData) {
   ensureDir();
   fs.writeFileSync(storePath, JSON.stringify(data, null, 2), "utf8");
+}
+
+/** Old stores used per-item sendAt at the next 10-minute boundary with no digestFlushAt — migrate so we wait until that time. */
+function migrateLegacyDigest(store: StoreData): StoreData {
+  if (store.pendingDigest.length === 0) return store;
+  if (store.digestFlushAt) return store;
+  const now = Date.now();
+  const maxSend = Math.max(
+    ...store.pendingDigest.map((p) => new Date(p.sendAt).getTime()),
+  );
+  if (maxSend > now) {
+    store.digestFlushAt = new Date(maxSend).toISOString();
+    writeStore(store);
+  }
+  return store;
 }
 
 export function upsertSubscriber(email: string, name: string): {
@@ -113,13 +130,22 @@ export function upsertSubscriber(email: string, name: string): {
   return { subscriber: row, isNew };
 }
 
-export function addPendingDigestItem(item: PendingDigestItem) {
+/**
+ * Queue or refresh an item. Extends `digestFlushAt` by `debounceMs` from now so rapid
+ * publishes batch into one send after publishing stops.
+ */
+export function addPendingDigestItem(
+  item: PendingDigestItem,
+  debounceMs: number,
+) {
   const store = readStore();
   const key = `${item.type}:${item.id}`;
   store.pendingDigest = store.pendingDigest.filter(
     (p) => `${p.type}:${p.id}` !== key,
   );
   store.pendingDigest.push(item);
+  const ms = Number.isFinite(debounceMs) && debounceMs >= 0 ? debounceMs : 60_000;
+  store.digestFlushAt = new Date(Date.now() + ms).toISOString();
   writeStore(store);
 }
 
@@ -130,5 +156,8 @@ export function removePendingItems(items: PendingDigestItem[]) {
   store.pendingDigest = store.pendingDigest.filter(
     (p) => !drop.has(`${p.type}:${p.id}`),
   );
+  if (store.pendingDigest.length === 0) {
+    store.digestFlushAt = undefined;
+  }
   writeStore(store);
 }

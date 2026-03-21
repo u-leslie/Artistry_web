@@ -7,7 +7,11 @@ import type { Express } from "express";
 import { z } from "zod";
 import { subscribersToCsv, subscribersToHtmlPage } from "./admin-view.ts";
 import { welcomeEmailHtml, sendResendEmail } from "./emails.ts";
-import { processDueDigestEmails, queueDigestFromSanityEvent } from "./process-digest.ts";
+import {
+  processDueDigestEmails,
+  queueDigestFromSanityEvent,
+  scheduleDigestWhenFlushReady,
+} from "./process-digest.ts";
 import { readStore, upsertSubscriber } from "./store.ts";
 import { getSiteUrl } from "./site-url.ts";
 
@@ -211,6 +215,8 @@ export function createApp(): Express {
     }
 
     queueDigestFromSanityEvent(item.at, { id: item.id, type: item.type });
+    scheduleDigestWhenFlushReady();
+
     res.json({ ok: true, queued: { id: item.id, type: item.type } });
   });
 

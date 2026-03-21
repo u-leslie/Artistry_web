@@ -4,23 +4,65 @@ import {
   removePendingItems,
   type PendingDigestItem,
 } from "./store.ts";
-import { computeDigestSendAt } from "./digest-schedule.ts";
 import { getSanityServer, photoUrlFor } from "./sanity-server.ts";
 import { newContentEmailHtml, sendResendEmail } from "./emails.ts";
 import { getSiteUrl } from "./site-url.ts";
 
+let digestFlushTimer: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * After queueing, call this so we process when the debounce elapses without relying on cron.
+ * If the process restarts or the host sleeps, POST /api/cron/digest is still the backup.
+ */
+export function scheduleDigestWhenFlushReady(): void {
+  const store = readStore();
+  if (store.pendingDigest.length === 0) return;
+
+  const flushAt = store.digestFlushAt
+    ? new Date(store.digestFlushAt).getTime()
+    : 0;
+  const now = Date.now();
+
+  if (digestFlushTimer) {
+    clearTimeout(digestFlushTimer);
+    digestFlushTimer = null;
+  }
+
+  if (flushAt <= now) {
+    void processDueDigestEmails().catch((err) => {
+      console.error("[digest] flush failed:", err);
+    });
+    return;
+  }
+
+  const delay = Math.max(0, flushAt - now) + 10;
+  digestFlushTimer = setTimeout(() => {
+    digestFlushTimer = null;
+    void processDueDigestEmails().catch((err) => {
+      console.error("[digest] scheduled flush failed:", err);
+    });
+  }, delay);
+}
+
+function digestDebounceMs(): number {
+  const raw = process.env.DIGEST_DEBOUNCE_MS ?? "180000";
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? n : 60_000;
+}
+
 export function queueDigestFromSanityEvent(
-  publishedAt: Date,
+  _publishedAt: Date,
   item: { id: string; type: string },
 ) {
   if (item.type !== "photo" && item.type !== "poem") return;
-  const tz = process.env.DIGEST_TIMEZONE ?? "America/New_York";
-  const sendAt = computeDigestSendAt(publishedAt, tz);
-  addPendingDigestItem({
-    id: item.id,
-    type: item.type as "photo" | "poem",
-    sendAt: sendAt.toISOString(),
-  });
+  addPendingDigestItem(
+    {
+      id: item.id,
+      type: item.type as "photo" | "poem",
+      sendAt: new Date().toISOString(),
+    },
+    digestDebounceMs(),
+  );
 }
 
 export async function processDueDigestEmails(): Promise<{
@@ -29,6 +71,18 @@ export async function processDueDigestEmails(): Promise<{
 }> {
   const store = readStore();
   const now = Date.now();
+
+  if (store.pendingDigest.length === 0) {
+    return { sent: 0, skipped: "no due items" };
+  }
+
+  const flushAtMs = store.digestFlushAt
+    ? new Date(store.digestFlushAt).getTime()
+    : 0;
+  if (flushAtMs > now) {
+    return { sent: 0, skipped: "digest debounce window" };
+  }
+
   const due = store.pendingDigest.filter(
     (p: PendingDigestItem) => new Date(p.sendAt).getTime() <= now,
   );
@@ -45,12 +99,12 @@ export async function processDueDigestEmails(): Promise<{
     return { sent: 0, skipped: "Sanity not configured" };
   }
 
-  const photoIds = [
-    ...new Set(due.filter((d: PendingDigestItem) => d.type === "photo").map((d) => d.id)),
-  ];
-  const poemIds = [
-    ...new Set(due.filter((d: PendingDigestItem) => d.type === "poem").map((d) => d.id)),
-  ];
+  const photoIds = Array.from(
+    new Set(due.filter((d: PendingDigestItem) => d.type === "photo").map((d) => d.id)),
+  );
+  const poemIds = Array.from(
+    new Set(due.filter((d: PendingDigestItem) => d.type === "poem").map((d) => d.id)),
+  );
 
   const photos =
     photoIds.length > 0
