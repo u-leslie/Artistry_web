@@ -29,9 +29,13 @@ function getSiteUrl() {
 
 export function createApp(): Express {
   const app = express();
+  const corsOrigins = process.env.CORS_ORIGINS?.split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
   app.use(
     cors({
-      origin: true,
+      origin:
+        corsOrigins && corsOrigins.length > 0 ? corsOrigins : true,
     }),
   );
   app.use(express.json({ limit: "256kb" }));

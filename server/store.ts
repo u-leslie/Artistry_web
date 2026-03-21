@@ -26,7 +26,9 @@ const defaultStore: StoreData = {
   pendingDigest: [],
 };
 
-const dataDir = path.resolve(__dirname, "../data");
+const dataDir = process.env.DATA_DIR
+  ? path.resolve(process.env.DATA_DIR)
+  : path.resolve(__dirname, "../data");
 const storePath = path.join(dataDir, "store.json");
 
 function ensureDir() {

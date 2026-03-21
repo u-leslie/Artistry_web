@@ -1,0 +1,27 @@
+# Render Blueprint: Web Service for the Express API (newsletter, webhooks, digest cron).
+# Dashboard: New → Blueprint → connect repo, or paste this file.
+#
+# After deploy, copy the service URL (e.g. https://artistry-api.onrender.com) into
+# Vercel as VITE_API_BASE (no trailing slash) and redeploy the frontend.
+#
+# Optional: add a Persistent Disk in the Render dashboard and set DATA_DIR to the
+# mount path so data/store.json survives redeploys (free instances are otherwise ephemeral).
+
+services:
+  - type: web
+    name: artistry-api
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: SITE_URL
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        value: https://art.lslie.space
