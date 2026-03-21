@@ -1,10 +1,11 @@
 import { motion } from "motion/react";
 import { useInView } from "motion/react";
 import { useRef, useState, useMemo } from "react";
-import { Link } from "react-router-dom";
 import { usePhotos, type Photo } from "@/hooks/use-photos";
 import { CustomCursor } from "@/components/custom-cursor.tsx";
 import { ArtistryLoader } from "@/components/artistry-loader.tsx";
+import { GalleryShuffleMode } from "./_components/gallery-shuffle-mode.tsx";
+import { GalleryImmersiveTrigger } from "./_components/gallery-immersive-trigger.tsx";
 import Navbar from "./_components/navbar.tsx";
 
 function GalleryPhotoCard({ photo, index }: { photo: Photo; index: number }) {
@@ -84,6 +85,7 @@ function GalleryPhotoCard({ photo, index }: { photo: Photo; index: number }) {
 export default function Gallery() {
   const { data: photos, isLoading, error } = usePhotos();
   const [currentPage, setCurrentPage] = useState(1);
+  const [shuffleOpen, setShuffleOpen] = useState(false);
   const itemsPerPage = 8;
 
   // Calculate pagination
@@ -157,6 +159,14 @@ export default function Gallery() {
       <CustomCursor />
       <Navbar />
 
+      {photos && photos.length > 0 && (
+        <GalleryShuffleMode
+          photos={photos}
+          open={shuffleOpen}
+          onClose={() => setShuffleOpen(false)}
+        />
+      )}
+
       <main className="pt-24">
         {/* Header */}
         <motion.section
@@ -165,14 +175,27 @@ export default function Gallery() {
           transition={{ duration: 0.8 }}
           className="container mx-auto px-4 py-20"
         >
-          <div className="max-w-4xl mx-auto text-center">
-            <div className="flex items-baseline justify-center gap-8 mb-8">
+          <div className="relative mx-auto max-w-4xl text-center">
+            <div className="pointer-events-none absolute right-0 top-0 z-10 md:-top-1">
+              <div className="pointer-events-auto">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.92 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                >
+                  <GalleryImmersiveTrigger
+                    onOpen={() => setShuffleOpen(true)}
+                  />
+                </motion.div>
+              </div>
+            </div>
+            <div className="flex items-baseline justify-center gap-8 mb-8 pr-12 md:pr-14">
               <h1 className="text-6xl md:text-8xl font-serif font-light tracking-tighter">
                 Shots
               </h1>
               <div className="h-px flex-1 max-w-md bg-foreground" />
             </div>
-            <p className="text-lg text-muted-foreground font-light tracking-wide mb-4">
+            <p className="text-lg text-muted-foreground font-light tracking-wide">
               A TOUR THROUGH MY GALLERY
             </p>
           </div>
