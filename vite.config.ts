@@ -1,7 +1,33 @@
 import path from "node:path";
+import type { NextFunction, Request, Response } from "express";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react-swc";
+import type { Plugin } from "vite";
 import { defineConfig } from "vite";
+
+/**
+ * Mount the Express API in dev so `npm run dev` (Vite only) still serves /api/*
+ * without a separate process on :8787 (avoids ECONNREFUSED on /api/subscribe).
+ */
+function artistryApiPlugin(): Plugin {
+  return {
+    name: "artistry-api",
+    async configureServer(server) {
+      const { createApp } = await import("./server/app.ts");
+      const app = createApp();
+      server.middlewares.use(
+        (req, res, next: NextFunction) => {
+          const url = req.url ?? "";
+          if (url.split("?")[0]?.startsWith("/api")) {
+            app(req as Request, res as Response, next);
+          } else {
+            next();
+          }
+        },
+      );
+    },
+  };
+}
 
 export default defineConfig({
   server: {
@@ -12,7 +38,7 @@ export default defineConfig({
       overlay: false,
     },
   },
-  plugins: [react(), tailwindcss()],
+  plugins: [artistryApiPlugin(), react(), tailwindcss()],
   resolve: {
     alias: {
       "@/convex": path.resolve(__dirname, "./convex"),

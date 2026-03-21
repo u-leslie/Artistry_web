@@ -28,6 +28,9 @@ tsconfig.tsbuildinfo
 
 # Environment variables
 .env*
+
+# Local API store (subscribers + digest queue)
+data/store.json
 convex/
 
 # Sanity Studio
@@ -36,3 +39,7 @@ sanity/.sanity/
 sanity/node_modules/
 
 .pnpm-store/
+data
+data/store.json
+
+scripts/
