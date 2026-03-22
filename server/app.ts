@@ -199,6 +199,28 @@ export function createApp(): Express {
       const at = raw ? new Date(raw) : new Date();
       return { id: doc._id, type: doc._type, at };
     }
+    const after = body.after as
+      | {
+          _id?: string;
+          _type?: string;
+          _createdAt?: string;
+          _updatedAt?: string;
+        }
+      | undefined;
+    if (after?._id && after?._type) {
+      const raw = after._updatedAt ?? after._createdAt;
+      const at = raw ? new Date(raw) : new Date();
+      return { id: after._id, type: after._type, at };
+    }
+    // Empty GROQ projection: Sanity POSTs the whole document at the root.
+    const rootId = body._id;
+    const rootType = body._type;
+    if (typeof rootId === "string" && typeof rootType === "string") {
+      const raw = body._updatedAt ?? body._createdAt;
+      const at =
+        typeof raw === "string" ? new Date(raw) : new Date();
+      return { id: rootId, type: rootType, at };
+    }
     return null;
   }
 
@@ -208,14 +230,22 @@ export function createApp(): Express {
       return;
     }
 
-    const item = parseSanityWebhook(req.body as Record<string, unknown>);
+    const body = req.body as Record<string, unknown>;
+    const item = parseSanityWebhook(body);
     if (!item) {
+      const keys = Object.keys(body).slice(0, 25);
+      console.warn(
+        "[webhook] Unrecognized payload (expected result, document, or root _id/_type). Keys:",
+        keys,
+      );
       res.status(400).json({ ok: false, error: "Unrecognized payload" });
       return;
     }
 
     queueDigestFromSanityEvent(item.at, { id: item.id, type: item.type });
     scheduleDigestWhenFlushReady();
+
+    console.log("[webhook] digest queued:", item.type, item.id);
 
     res.json({ ok: true, queued: { id: item.id, type: item.type } });
   });
