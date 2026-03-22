@@ -1,9 +1,9 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { isValidSignature, SIGNATURE_HEADER_NAME } from "@sanity/webhook";
 import cors from "cors";
 import dotenv from "dotenv";
-import express from "express";
-import type { Express } from "express";
+import express, { type Express, type Request } from "express";
 import { z } from "zod";
 import { subscribersToCsv, subscribersToHtmlPage } from "./admin-view.ts";
 import { welcomeEmailHtml, sendResendEmail } from "./emails.ts";
@@ -24,6 +24,96 @@ const subscribeSchema = z.object({
   name: z.string().max(160).optional(),
 });
 
+function headerString(req: Request, name: string): string | undefined {
+  const v = req.headers[name];
+  if (typeof v === "string") return v;
+  if (Array.isArray(v)) return v[0];
+  return undefined;
+}
+
+/**
+ * Accepts either (1) Sanity’s signed `sanity-webhook-signature` header (Secret in Sanity UI)
+ * or (2) custom `x-artistry-webhook-secret` / `?secret=` matching SANITY_WEBHOOK_SECRET.
+ */
+async function verifySanityWebhookAuth(
+  req: Request,
+  rawBody: string,
+): Promise<boolean> {
+  const secret = process.env.SANITY_WEBHOOK_SECRET;
+  if (!secret) {
+    console.warn(
+      "[webhook] SANITY_WEBHOOK_SECRET is not set — allowing requests (set this in production)",
+    );
+    return true;
+  }
+  const custom =
+    headerString(req, "x-artistry-webhook-secret") ??
+    (typeof req.query.secret === "string" ? req.query.secret : undefined);
+  if (custom === secret) return true;
+
+  const sig =
+    headerString(req, SIGNATURE_HEADER_NAME) ??
+    headerString(req, "sanity-webhook-signature");
+  if (sig) {
+    return isValidSignature(rawBody, sig, secret);
+  }
+  return false;
+}
+
+function parseSanityWebhook(body: Record<string, unknown>): {
+  id: string;
+  type: string;
+  at: Date;
+} | null {
+  const result = body.result as
+    | {
+        _id?: string;
+        _type?: string;
+        _createdAt?: string;
+        _updatedAt?: string;
+      }
+    | undefined;
+  if (result?._id && result?._type) {
+    const raw = result._updatedAt ?? result._createdAt;
+    const at = raw ? new Date(raw) : new Date();
+    return { id: result._id, type: result._type, at };
+  }
+  const doc = body.document as
+    | {
+        _id?: string;
+        _type?: string;
+        _createdAt?: string;
+        _updatedAt?: string;
+      }
+    | undefined;
+  if (doc?._id && doc?._type) {
+    const raw = doc._updatedAt ?? doc._createdAt;
+    const at = raw ? new Date(raw) : new Date();
+    return { id: doc._id, type: doc._type, at };
+  }
+  const after = body.after as
+    | {
+        _id?: string;
+        _type?: string;
+        _createdAt?: string;
+        _updatedAt?: string;
+      }
+    | undefined;
+  if (after?._id && after?._type) {
+    const raw = after._updatedAt ?? after._createdAt;
+    const at = raw ? new Date(raw) : new Date();
+    return { id: after._id, type: after._type, at };
+  }
+  const rootId = body._id;
+  const rootType = body._type;
+  if (typeof rootId === "string" && typeof rootType === "string") {
+    const raw = body._updatedAt ?? body._createdAt;
+    const at = typeof raw === "string" ? new Date(raw) : new Date();
+    return { id: rootId, type: rootType, at };
+  }
+  return null;
+}
+
 export function createApp(): Express {
   const app = express();
   const corsOrigins = process.env.CORS_ORIGINS?.split(",")
@@ -35,6 +125,44 @@ export function createApp(): Express {
         corsOrigins && corsOrigins.length > 0 ? corsOrigins : true,
     }),
   );
+
+  app.post(
+    "/api/webhooks/sanity",
+    express.text({ type: "application/json", limit: "256kb" }),
+    async (req, res) => {
+      const raw =
+        typeof req.body === "string" ? req.body : String(req.body ?? "");
+      if (!(await verifySanityWebhookAuth(req, raw))) {
+        res.status(401).json({ ok: false, error: "Unauthorized" });
+        return;
+      }
+      let body: Record<string, unknown>;
+      try {
+        body = JSON.parse(raw) as Record<string, unknown>;
+      } catch {
+        res.status(400).json({ ok: false, error: "Invalid JSON" });
+        return;
+      }
+      const item = parseSanityWebhook(body);
+      if (!item) {
+        const keys = Object.keys(body).slice(0, 25);
+        console.warn(
+          "[webhook] Unrecognized payload (expected result, document, or root _id/_type). Keys:",
+          keys,
+        );
+        res.status(400).json({ ok: false, error: "Unrecognized payload" });
+        return;
+      }
+
+      queueDigestFromSanityEvent(item.at, { id: item.id, type: item.type });
+      scheduleDigestWhenFlushReady();
+
+      console.log("[webhook] digest queued:", item.type, item.id);
+
+      res.json({ ok: true, queued: { id: item.id, type: item.type } });
+    },
+  );
+
   app.use(express.json({ limit: "256kb" }));
 
   app.get("/api/health", (_req, res) => {
@@ -152,102 +280,6 @@ export function createApp(): Express {
       count: rows.length,
       subscribers: rows,
     });
-  });
-
-  function verifyWebhookSecret(req: express.Request): boolean {
-    const expected = process.env.SANITY_WEBHOOK_SECRET;
-    if (!expected) {
-      console.warn(
-        "[webhook] SANITY_WEBHOOK_SECRET is not set — allowing requests (set this in production)",
-      );
-      return true;
-    }
-    const header =
-      (req.headers["x-artistry-webhook-secret"] as string | undefined) ||
-      (typeof req.query.secret === "string" ? req.query.secret : undefined);
-    return header === expected;
-  }
-
-  function parseSanityWebhook(body: Record<string, unknown>): {
-    id: string;
-    type: string;
-    at: Date;
-  } | null {
-    const result = body.result as
-      | {
-          _id?: string;
-          _type?: string;
-          _createdAt?: string;
-          _updatedAt?: string;
-        }
-      | undefined;
-    if (result?._id && result?._type) {
-      const raw = result._updatedAt ?? result._createdAt;
-      const at = raw ? new Date(raw) : new Date();
-      return { id: result._id, type: result._type, at };
-    }
-    const doc = body.document as
-      | {
-          _id?: string;
-          _type?: string;
-          _createdAt?: string;
-          _updatedAt?: string;
-        }
-      | undefined;
-    if (doc?._id && doc?._type) {
-      const raw = doc._updatedAt ?? doc._createdAt;
-      const at = raw ? new Date(raw) : new Date();
-      return { id: doc._id, type: doc._type, at };
-    }
-    const after = body.after as
-      | {
-          _id?: string;
-          _type?: string;
-          _createdAt?: string;
-          _updatedAt?: string;
-        }
-      | undefined;
-    if (after?._id && after?._type) {
-      const raw = after._updatedAt ?? after._createdAt;
-      const at = raw ? new Date(raw) : new Date();
-      return { id: after._id, type: after._type, at };
-    }
-    // Empty GROQ projection: Sanity POSTs the whole document at the root.
-    const rootId = body._id;
-    const rootType = body._type;
-    if (typeof rootId === "string" && typeof rootType === "string") {
-      const raw = body._updatedAt ?? body._createdAt;
-      const at =
-        typeof raw === "string" ? new Date(raw) : new Date();
-      return { id: rootId, type: rootType, at };
-    }
-    return null;
-  }
-
-  app.post("/api/webhooks/sanity", (req, res) => {
-    if (!verifyWebhookSecret(req)) {
-      res.status(401).json({ ok: false, error: "Unauthorized" });
-      return;
-    }
-
-    const body = req.body as Record<string, unknown>;
-    const item = parseSanityWebhook(body);
-    if (!item) {
-      const keys = Object.keys(body).slice(0, 25);
-      console.warn(
-        "[webhook] Unrecognized payload (expected result, document, or root _id/_type). Keys:",
-        keys,
-      );
-      res.status(400).json({ ok: false, error: "Unrecognized payload" });
-      return;
-    }
-
-    queueDigestFromSanityEvent(item.at, { id: item.id, type: item.type });
-    scheduleDigestWhenFlushReady();
-
-    console.log("[webhook] digest queued:", item.type, item.id);
-
-    res.json({ ok: true, queued: { id: item.id, type: item.type } });
   });
 
   function verifyCronSecret(req: express.Request): boolean {
