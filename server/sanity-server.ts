@@ -7,11 +7,14 @@ let clientCacheKey = "";
 
 export function getSanityServer(): SanityClient | null {
   const projectId = (
-    process.env.SANITY_PROJECT_ID ?? process.env.VITE_SANITY_PROJECT_ID ??
+    process.env.SANITY_PROJECT_ID ??
+    process.env.VITE_SANITY_PROJECT_ID ??
     ""
   ).trim();
   const dataset = (
-    process.env.SANITY_DATASET ?? process.env.VITE_SANITY_DATASET ?? "production"
+    process.env.SANITY_DATASET ??
+    process.env.VITE_SANITY_DATASET ??
+    "production"
   ).trim();
   if (!projectId) return null;
 
@@ -35,5 +38,8 @@ export function photoUrlFor(image: unknown, width = 640): string {
   if (!c || !image) return "";
   const builder = imageUrlBuilder(c);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return builder.image(image as any).width(width).url();
+  return builder
+    .image(image as never)
+    .width(width)
+    .url();
 }
