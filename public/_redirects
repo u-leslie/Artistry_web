@@ -1,0 +1,2 @@
+# Netlify / Cloudflare Pages: client-side routes (e.g. /gallery) → SPA shell
+/* /index.html 200

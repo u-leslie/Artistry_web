@@ -50,8 +50,8 @@ app.listen(port, () => {
 });
 
 /**
- * Backup sweep every 10 minutes (when the process is awake). Digests primarily send
- * after DIGEST_DEBOUNCE_MS quiet time following a publish (webhook calls processDueDigestEmails).
+ * Backup sweep every 10 minutes (when the process is awake). Digests send after
+ * DIGEST_DEBOUNCE_MS (default 10 min) with no new publishes; webhook + timer flush sooner when due.
  * On Render free, use an external POST to /api/cron/digest with CRON_SECRET if the instance slept.
  */
 const tz = process.env.DIGEST_TIMEZONE ?? "America/New_York";

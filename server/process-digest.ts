@@ -45,10 +45,10 @@ export function scheduleDigestWhenFlushReady(): void {
 }
 
 function digestDebounceMs(): number {
-  /** Default 45s — batches draft+publish pairs; low enough that many hosts flush before sleep. */
-  const raw = process.env.DIGEST_DEBOUNCE_MS ?? "45000";
+  /** Default 10 min — no new publishes for this long before digest sends. Override with DIGEST_DEBOUNCE_MS (ms). */
+  const raw = process.env.DIGEST_DEBOUNCE_MS ?? "600000";
   const n = Number(raw);
-  return Number.isFinite(n) && n >= 0 ? n : 45_000;
+  return Number.isFinite(n) && n >= 0 ? n : 600_000;
 }
 
 /** Draft webhooks use `drafts.<uuid>`; published docs use `<uuid>`. Digest fetch targets published ids. */
