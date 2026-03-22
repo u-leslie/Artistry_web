@@ -1,76 +1,78 @@
 import { getSanityServer } from "./sanity-server.ts";
 import {
+  isSanityUnauthorized,
+  normalizeSanityApiToken,
+} from "./sanity-token.ts";
+import {
   listSubscribersSanity,
   upsertSubscriberSanity,
 } from "./subscribers-sanity.ts";
 import {
-  listSubscribersFromFile,
-  upsertSubscriberInFile,
-} from "./subscribers-file.ts";
-import { readStore, writeStore, type Subscriber } from "./store.ts";
+  clearSubscribersFromDisk,
+  readLegacySubscribersFromDisk,
+  type Subscriber,
+} from "./store.ts";
+import type { SanityClient } from "@sanity/client";
 
 export type { Subscriber };
 
-/**
- * `sanity` — durable (Content Lake); needs SANITY_API_TOKEN with write access.
- * `file` — data/store.json only (fragile on Render free).
- * Default: `sanity` when SANITY_API_TOKEN is set, else `file`.
- */
-export function subscriberStorageMode(): "sanity" | "file" {
-  const raw = process.env.SUBSCRIBER_STORAGE?.trim().toLowerCase();
-  if (raw === "file") return "file";
-  if (raw === "sanity") return "sanity";
-  return process.env.SANITY_API_TOKEN?.trim() ? "sanity" : "file";
+function getSanitySubscribersClient(): SanityClient {
+  const client = getSanityServer();
+  const token = normalizeSanityApiToken(process.env.SANITY_API_TOKEN);
+  if (!client || !token) {
+    throw new Error(
+      "Subscribers require SANITY_PROJECT_ID (or VITE_SANITY_PROJECT_ID), SANITY_DATASET or VITE_SANITY_DATASET, and SANITY_API_TOKEN with write access to the dataset.",
+    );
+  }
+  return client;
 }
 
 export async function listSubscribers(): Promise<Subscriber[]> {
-  const mode = subscriberStorageMode();
-  if (mode === "sanity") {
-    const client = getSanityServer();
-    if (!client || !process.env.SANITY_API_TOKEN?.trim()) {
-      console.warn(
-        "[subscribers] Sanity storage selected but token missing — using file store.",
-      );
-      return listSubscribersFromFile();
-    }
-    try {
-      return await listSubscribersSanity(client);
-    } catch (err) {
-      console.error("[subscribers] Sanity list failed, using file:", err);
-      return listSubscribersFromFile();
-    }
+  const client = getSanitySubscribersClient();
+  try {
+    return await listSubscribersSanity(client);
+  } catch (err) {
+    console.error("[subscribers] Sanity list failed:", err);
+    throw err instanceof Error
+      ? err
+      : new Error("Could not load subscribers from Sanity.");
   }
-  return listSubscribersFromFile();
 }
 
+/**
+ * Upserts by email; existence is determined in Sanity via stable document id (`newsletterDocId`).
+ */
 export async function upsertSubscriber(
   email: string,
   name: string,
 ): Promise<{ subscriber: Subscriber; isNew: boolean }> {
-  const mode = subscriberStorageMode();
-  if (mode === "sanity") {
-    const client = getSanityServer();
-    if (!client || !process.env.SANITY_API_TOKEN?.trim()) {
-      return upsertSubscriberInFile(email, name);
+  const client = getSanitySubscribersClient();
+  try {
+    const r = await upsertSubscriberSanity(client, email, name);
+    console.log("[subscribers] saved to Sanity:", r.subscriber.email);
+    return { subscriber: r.subscriber, isNew: r.isNew };
+  } catch (err) {
+    console.error("[subscribers] Sanity write failed:", err);
+    if (isSanityUnauthorized(err)) {
+      console.error(
+        "[subscribers] Sanity returned 401 — create a new API token at https://www.sanity.io/manage → API → Tokens (Editor). Paste into SANITY_API_TOKEN with no quotes.",
+      );
     }
-    try {
-      return await upsertSubscriberSanity(client, email, name);
-    } catch (err) {
-      console.error("[subscribers] Sanity upsert failed, using file:", err);
-      return upsertSubscriberInFile(email, name);
-    }
+    throw err instanceof Error
+      ? err
+      : new Error("Could not save subscriber to Sanity.");
   }
-  return upsertSubscriberInFile(email, name);
 }
 
-/** One-time: copy legacy store.json subscribers into Sanity and clear them from the file. */
-export async function migrateSubscribersFromFileToSanity(): Promise<void> {
-  if (subscriberStorageMode() !== "sanity") return;
+/** One-time: copy legacy `subscribers` from store.json into Sanity and remove them from disk. */
+export async function migrateLegacySubscribersFromStoreJson(): Promise<void> {
   const client = getSanityServer();
-  if (!client || !process.env.SANITY_API_TOKEN?.trim()) return;
+  const token = normalizeSanityApiToken(process.env.SANITY_API_TOKEN);
+  if (!client || !token) {
+    return;
+  }
 
-  const store = readStore();
-  const subs = store.subscribers ?? [];
+  const subs = readLegacySubscribersFromDisk();
   if (subs.length === 0) return;
 
   let migrated = 0;
@@ -89,18 +91,18 @@ export async function migrateSubscribersFromFileToSanity(): Promise<void> {
   }
 
   if (migrated === subs.length) {
-    writeStore({ ...store, subscribers: [] });
+    clearSubscribersFromDisk();
     console.log(
-      `[subscribers] migrated ${migrated} subscriber(s) from store.json → Sanity (newsletterSubscriber documents)`,
+      `[subscribers] migrated ${migrated} legacy row(s) from store.json → Sanity (newsletterSubscriber)`,
     );
   } else {
     console.warn(
-      `[subscribers] migrated ${migrated}/${subs.length} — store.json left unchanged; fix errors and restart`,
+      `[subscribers] migrated ${migrated}/${subs.length} — store.json subscribers left until all succeed; fix errors and restart`,
     );
   }
 }
 
-/** Merge SUBSCRIBERS_JSON into the active backend (Render env). */
+/** Merge SUBSCRIBERS_JSON into Sanity (e.g. Render env bootstrap). */
 export async function seedSubscribersFromEnv(): Promise<void> {
   const raw = process.env.SUBSCRIBERS_JSON?.trim();
   if (!raw) return;
@@ -115,12 +117,16 @@ export async function seedSubscribersFromEnv(): Promise<void> {
   let n = 0;
   for (const r of rows) {
     if (typeof r.email === "string" && r.email.trim()) {
-      await upsertSubscriber(
-        r.email.trim(),
-        (r.name ?? "there").trim() || "there",
-      );
-      n += 1;
+      try {
+        await upsertSubscriber(
+          r.email.trim(),
+          (r.name ?? "there").trim() || "there",
+        );
+        n += 1;
+      } catch (err) {
+        console.error("[subscribers] seed row failed:", r.email, err);
+      }
     }
   }
-  console.log(`[subscribers] merged ${n} row(s) from SUBSCRIBERS_JSON`);
+  console.log(`[subscribers] merged ${n} row(s) from SUBSCRIBERS_JSON into Sanity`);
 }

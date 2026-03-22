@@ -6,7 +6,7 @@ import express from "express";
 import { createApp } from "./app.ts";
 import { processDueDigestEmails } from "./process-digest.ts";
 import {
-  migrateSubscribersFromFileToSanity,
+  migrateLegacySubscribersFromStoreJson,
   seedSubscribersFromEnv,
 } from "./subscribers.ts";
 
@@ -34,8 +34,17 @@ const port = Number(process.env.PORT ?? 8787);
 
 app.listen(port, () => {
   console.log(`[artistry-api] listening on http://localhost:${port}`);
+  const hasProject = Boolean(
+    process.env.SANITY_PROJECT_ID ?? process.env.VITE_SANITY_PROJECT_ID,
+  );
+  const hasToken = Boolean(process.env.SANITY_API_TOKEN?.trim());
+  if (hasProject && !hasToken) {
+    console.warn(
+      "[artistry-api] SANITY_API_TOKEN is not set — /api/subscribe and digests need an Editor token (sanity.io/manage).",
+    );
+  }
   void (async () => {
-    await migrateSubscribersFromFileToSanity();
+    await migrateLegacySubscribersFromStoreJson();
     await seedSubscribersFromEnv();
   })();
 });

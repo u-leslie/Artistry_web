@@ -110,9 +110,10 @@ async function processDueDigestEmailsImpl(): Promise<{
   }
 
   const subscribers = await listSubscribers();
+  console.log(`[digest] ${subscribers.length} recipient(s) from Sanity`);
   if (subscribers.length === 0) {
     console.warn(
-      "[digest] skip: no subscribers — add people via the site (or Sanity newsletterSubscriber docs / store.json). Pending items kept.",
+      "[digest] skip: no newsletterSubscriber docs in Sanity. Pending items kept.",
     );
     return { sent: 0, skipped: "no subscribers" };
   }

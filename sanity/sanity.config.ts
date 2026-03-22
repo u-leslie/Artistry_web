@@ -2,14 +2,15 @@ import { defineConfig } from "sanity";
 import { structureTool } from "sanity/structure";
 import { visionTool } from "@sanity/vision";
 
-const projectId = process.env.VITE_SANITY_PROJECT_ID || 
-                  process.env.SANITY_STUDIO_PROJECT_ID || 
-                  "";
+const projectId =
+  process.env.VITE_SANITY_PROJECT_ID ||
+  process.env.SANITY_STUDIO_PROJECT_ID ||
+  "";
 
-const dataset = process.env.VITE_SANITY_DATASET || 
-                process.env.SANITY_STUDIO_DATASET || 
-                "production";
-
+const dataset =
+  process.env.VITE_SANITY_DATASET ||
+  process.env.SANITY_STUDIO_DATASET ||
+  "production";
 
 export default defineConfig({
   name: "artistry",
@@ -17,10 +18,7 @@ export default defineConfig({
   projectId,
   dataset,
   basePath: "/studio",
-  plugins: [
-    structureTool(),
-    visionTool(), 
-  ],
+  plugins: [structureTool(), visionTool()],
   schema: {
     types: [
       {

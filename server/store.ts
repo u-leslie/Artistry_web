@@ -16,9 +16,8 @@ export type Subscriber = {
   subscribedAt: string;
 };
 
+/** Persisted JSON: digest queue only (subscribers live in Sanity). */
 export type StoreData = {
-  /** Legacy file-backed list; optional when using Sanity (`SUBSCRIBER_STORAGE=sanity`). */
-  subscribers?: Subscriber[];
   pendingDigest: PendingDigestItem[];
   /** ISO time — do not send digest until this moment (rolling debounce after each publish). */
   digestFlushAt?: string;
@@ -39,7 +38,7 @@ function ensureDir() {
   }
 }
 
-/** One row per email; keeps earliest subscribedAt if duplicates exist in the file. */
+/** One row per email; keeps earliest subscribedAt if duplicates exist (legacy migrate only). */
 function dedupeSubscribers(rows: Subscriber[]): Subscriber[] {
   const byEmail = new Map<string, Subscriber>();
   for (const s of rows) {
@@ -67,25 +66,16 @@ export function readStore(): StoreData {
   }
   try {
     const raw = fs.readFileSync(storePath, "utf8");
-    const parsed = JSON.parse(raw) as StoreData;
-    const rawSubs = Array.isArray(parsed.subscribers)
-      ? parsed.subscribers
-      : [];
-    const subscribers =
-      rawSubs.length > 0 ? dedupeSubscribers(rawSubs) : undefined;
+    const parsed = JSON.parse(raw) as StoreData & { subscribers?: unknown };
     const pendingDigest = Array.isArray(parsed.pendingDigest)
       ? parsed.pendingDigest
       : [];
     const data: StoreData = {
-      ...(subscribers && subscribers.length > 0 ? { subscribers } : {}),
       pendingDigest,
       ...(typeof parsed.digestFlushAt === "string"
         ? { digestFlushAt: parsed.digestFlushAt }
         : {}),
     };
-    if (subscribers && subscribers.length !== rawSubs.length) {
-      writeStore(data);
-    }
     return migrateLegacyDigest(data);
   } catch {
     return structuredClone(defaultStore);
@@ -110,6 +100,50 @@ function migrateLegacyDigest(store: StoreData): StoreData {
     writeStore(store);
   }
   return store;
+}
+
+/**
+ * Read legacy `subscribers` rows from store.json (pre–Sanity-only) for one-time migration.
+ */
+export function readLegacySubscribersFromDisk(): Subscriber[] {
+  ensureDir();
+  if (!fs.existsSync(storePath)) return [];
+  try {
+    const raw = fs.readFileSync(storePath, "utf8");
+    const parsed = JSON.parse(raw) as { subscribers?: Subscriber[] };
+    const rawSubs = Array.isArray(parsed.subscribers)
+      ? parsed.subscribers
+      : [];
+    return rawSubs.length > 0 ? dedupeSubscribers(rawSubs) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Remove `subscribers` key from store.json after migrating to Sanity. */
+export function clearSubscribersFromDisk(): void {
+  ensureDir();
+  if (!fs.existsSync(storePath)) return;
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(fs.readFileSync(storePath, "utf8")) as Record<
+      string,
+      unknown
+    >;
+  } catch {
+    return;
+  }
+  if (!("subscribers" in parsed) || parsed.subscribers == null) return;
+  delete parsed.subscribers;
+  const next: StoreData = {
+    pendingDigest: Array.isArray(parsed.pendingDigest)
+      ? (parsed.pendingDigest as PendingDigestItem[])
+      : [],
+    ...(typeof parsed.digestFlushAt === "string"
+      ? { digestFlushAt: parsed.digestFlushAt }
+      : {}),
+  };
+  writeStore(next);
 }
 
 /**

@@ -1,8 +1,8 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import dotenv from "dotenv";
 import { isValidSignature, SIGNATURE_HEADER_NAME } from "@sanity/webhook";
 import cors from "cors";
-import dotenv from "dotenv";
 import express, { type Express, type Request } from "express";
 import { z } from "zod";
 import { subscribersToCsv, subscribersToHtmlPage } from "./admin-view.ts";
@@ -18,10 +18,13 @@ import {
   upsertSubscriber,
 } from "./subscribers.ts";
 import { getSiteUrl } from "./site-url.ts";
+import { isSanityUnauthorized } from "./sanity-token.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
-dotenv.config({ path: path.resolve(__dirname, "../.env") });
+
+/** Project root (works when Vite bundles server code into a temp dir). */
+dotenv.config({ path: path.join(process.cwd(), ".env.local") });
+dotenv.config({ path: path.join(process.cwd(), ".env") });
 
 const subscribeSchema = z.object({
   email: z.string().email(),
@@ -226,9 +229,21 @@ export function createApp(): Express {
         );
       }
 
-      res.json({ ok: true, alreadySubscribed: false, welcomeSent });
+      res.json({
+        ok: true,
+        alreadySubscribed: false,
+        welcomeSent,
+      });
     } catch (err) {
       console.error("[subscribe]", err);
+      if (isSanityUnauthorized(err)) {
+        res.status(503).json({
+          ok: false,
+          error:
+            "Newsletter signup is misconfigured: the Sanity API token is invalid or expired. In sanity.io/manage → API → Tokens, create a new token with Editor access and set SANITY_API_TOKEN in your server environment (no quotes).",
+        });
+        return;
+      }
       res.status(500).json({
         ok: false,
         error: "Subscription could not be completed. Please try again.",
@@ -258,7 +273,18 @@ export function createApp(): Express {
       return;
     }
 
-    const rows = await listSubscribers();
+    let rows;
+    try {
+      rows = await listSubscribers();
+    } catch (err) {
+      console.error("[admin/subscribers]", err);
+      res.status(500).json({
+        ok: false,
+        error: "Could not load subscribers.",
+      });
+      return;
+    }
+
     const format =
       typeof req.query.format === "string" ? req.query.format : "json";
 
@@ -305,8 +331,16 @@ export function createApp(): Express {
       res.status(401).json({ ok: false, error: "Unauthorized" });
       return;
     }
-    const result = await processDueDigestEmails();
-    res.json({ ok: true, ...result });
+    try {
+      const result = await processDueDigestEmails();
+      res.json({ ok: true, ...result });
+    } catch (err) {
+      console.error("[cron/digest]", err);
+      res.status(500).json({
+        ok: false,
+        error: "Digest run failed (check server logs).",
+      });
+    }
   }
 
   /** POST or GET — use GET with ?secret= for uptime/cron services that only support GET. */

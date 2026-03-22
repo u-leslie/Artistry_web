@@ -7,7 +7,10 @@ const DOC_TYPE = "newsletterSubscriber";
 /** Stable id from email (Sanity id: letters, digits, underscore, dash). */
 export function newsletterDocId(email: string): string {
   const normalized = email.trim().toLowerCase();
-  const hash = createHash("sha256").update(normalized).digest("hex").slice(0, 40);
+  const hash = createHash("sha256")
+    .update(normalized)
+    .digest("hex")
+    .slice(0, 40);
   return `ns.${hash}`;
 }
 
