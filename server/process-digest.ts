@@ -7,7 +7,6 @@ import {
 import { listSubscribers } from "./subscribers.ts";
 import { getSanityServer, photoUrlFor } from "./sanity-server.ts";
 import { newContentEmailHtml, sendResendEmail } from "./emails.ts";
-import { getSiteUrl } from "./site-url.ts";
 
 let digestFlushTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -127,17 +126,19 @@ async function processDueDigestEmailsImpl(): Promise<{
   }
 
   const photoIds = Array.from(
-    new Set(due.filter((d: PendingDigestItem) => d.type === "photo").map((d) => d.id)),
+    new Set(
+      due.filter((d: PendingDigestItem) => d.type === "photo").map((d) => d.id),
+    ),
   );
   const poemIds = Array.from(
-    new Set(due.filter((d: PendingDigestItem) => d.type === "poem").map((d) => d.id)),
+    new Set(
+      due.filter((d: PendingDigestItem) => d.type === "poem").map((d) => d.id),
+    ),
   );
 
   const photos =
     photoIds.length > 0
-      ? await client.fetch<
-          { _id: string; title: string; image: unknown }[]
-        >(
+      ? await client.fetch<{ _id: string; title: string; image: unknown }[]>(
           `*[_type == "photo" && _id in $ids] | order(order asc) { _id, title, image }`,
           { ids: photoIds },
         )
@@ -151,24 +152,21 @@ async function processDueDigestEmailsImpl(): Promise<{
         )
       : [];
 
-  const siteUrl = getSiteUrl();
-  const galleryUrl = `${siteUrl}/gallery`;
-  const poetryHref = `${siteUrl}/#poetry`;
-
   const photoPayload = photos.map((p) => ({
     title: p.title || "Untitled",
     imageUrl: photoUrlFor(p.image, 640),
-    href: galleryUrl,
   }));
 
   const poemPayload = poems.map((p) => ({
     title: p.title || "Untitled",
-    href: poetryHref,
   }));
 
   if (photoPayload.length === 0 && poemPayload.length === 0) {
     removePendingItems(due);
-    return { sent: 0, skipped: "nothing to include (content may have been removed)" };
+    return {
+      sent: 0,
+      skipped: "nothing to include (content may have been removed)",
+    };
   }
 
   if (!process.env.RESEND_API_KEY) {
@@ -180,8 +178,6 @@ async function processDueDigestEmailsImpl(): Promise<{
   for (const sub of subscribers) {
     const html = newContentEmailHtml({
       name: sub.name,
-      siteUrl,
-      galleryUrl,
       photos: photoPayload,
       poems: poemPayload,
     });
@@ -199,7 +195,6 @@ async function processDueDigestEmailsImpl(): Promise<{
 
   return {
     sent,
-    skipped:
-      sent === 0 ? "no successful sends (check Resend logs)" : "",
+    skipped: sent === 0 ? "no successful sends (check Resend logs)" : "",
   };
 }

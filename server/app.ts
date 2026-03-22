@@ -17,7 +17,6 @@ import {
   listSubscribers,
   upsertSubscriber,
 } from "./subscribers.ts";
-import { getSiteUrl } from "./site-url.ts";
 import { isSanityUnauthorized } from "./sanity-token.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -212,7 +211,7 @@ export function createApp(): Express {
 
       let welcomeSent = false;
       if (process.env.RESEND_API_KEY) {
-        const html = welcomeEmailHtml({ name: sub.name, siteUrl: getSiteUrl() });
+        const html = welcomeEmailHtml({ name: sub.name });
         const r = await sendResendEmail({
           to: sub.email,
           subject: "Welcome to Artistry by Leslie",

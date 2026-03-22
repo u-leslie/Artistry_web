@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { getPublicSiteUrlForEmail } from "./site-url.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -134,11 +135,9 @@ function textLink(href: string, label: string) {
   return `<a href="${escapeHtml(href)}" style="color:${E.accent};text-decoration:none;border-bottom:1px solid ${E.accent};padding-bottom:1px;font-family:'Source Sans 3',sans-serif;font-size:13px;letter-spacing:0.04em;">${escapeHtml(label)}</a>`;
 }
 
-export function welcomeEmailHtml(opts: {
-  name: string;
-  siteUrl: string;
-}) {
-  const { name, siteUrl } = opts;
+export function welcomeEmailHtml(opts: { name: string }) {
+  const { name } = opts;
+  const siteUrl = getPublicSiteUrlForEmail();
   const safeName = escapeHtml(name);
   const inner = `
               ${logoBlock(siteUrl)}
@@ -158,12 +157,13 @@ export function welcomeEmailHtml(opts: {
 
 export function newContentEmailHtml(opts: {
   name: string;
-  siteUrl: string;
-  galleryUrl: string;
-  photos: { title: string; imageUrl: string; href: string }[];
-  poems: { title: string; href: string }[];
+  photos: { title: string; imageUrl: string }[];
+  poems: { title: string }[];
 }) {
-  const { name, siteUrl, galleryUrl, photos, poems } = opts;
+  const { name, photos, poems } = opts;
+  const siteUrl = getPublicSiteUrlForEmail();
+  const galleryUrl = `${siteUrl}/gallery`;
+  const poetryHref = `${siteUrl}/#poetry`;
   const safeName = escapeHtml(name);
 
   const photoRows: string[] = [];
@@ -199,7 +199,7 @@ export function newContentEmailHtml(opts: {
     .map(
       (p) =>
         `<li style="margin:0 0 14px 0;list-style:none;padding:0;">
-  <a href="${escapeHtml(p.href)}" style="color:${E.ink};text-decoration:none;font-style:italic;font-size:19px;line-height:1.4;border-bottom:1px solid ${E.rule};display:inline;">“${escapeHtml(p.title)}”</a>
+  <a href="${escapeHtml(poetryHref)}" style="color:${E.ink};text-decoration:none;font-style:italic;font-size:19px;line-height:1.4;border-bottom:1px solid ${E.rule};display:inline;">“${escapeHtml(p.title)}”</a>
 </li>`,
     )
     .join("");
