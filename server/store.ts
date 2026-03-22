@@ -17,14 +17,14 @@ export type Subscriber = {
 };
 
 export type StoreData = {
-  subscribers: Subscriber[];
+  /** Legacy file-backed list; optional when using Sanity (`SUBSCRIBER_STORAGE=sanity`). */
+  subscribers?: Subscriber[];
   pendingDigest: PendingDigestItem[];
   /** ISO time — do not send digest until this moment (rolling debounce after each publish). */
   digestFlushAt?: string;
 };
 
 const defaultStore: StoreData = {
-  subscribers: [],
   pendingDigest: [],
 };
 
@@ -57,7 +57,7 @@ function dedupeSubscribers(rows: Subscriber[]): Subscriber[] {
       curT < prevT ? { ...s, email: key } : prev,
     );
   }
-  return [...byEmail.values()];
+  return Array.from(byEmail.values());
 }
 
 export function readStore(): StoreData {
@@ -71,12 +71,19 @@ export function readStore(): StoreData {
     const rawSubs = Array.isArray(parsed.subscribers)
       ? parsed.subscribers
       : [];
-    const subscribers = dedupeSubscribers(rawSubs);
+    const subscribers =
+      rawSubs.length > 0 ? dedupeSubscribers(rawSubs) : undefined;
     const pendingDigest = Array.isArray(parsed.pendingDigest)
       ? parsed.pendingDigest
       : [];
-    const data: StoreData = { subscribers, pendingDigest };
-    if (subscribers.length !== rawSubs.length) {
+    const data: StoreData = {
+      ...(subscribers && subscribers.length > 0 ? { subscribers } : {}),
+      pendingDigest,
+      ...(typeof parsed.digestFlushAt === "string"
+        ? { digestFlushAt: parsed.digestFlushAt }
+        : {}),
+    };
+    if (subscribers && subscribers.length !== rawSubs.length) {
       writeStore(data);
     }
     return migrateLegacyDigest(data);
@@ -103,31 +110,6 @@ function migrateLegacyDigest(store: StoreData): StoreData {
     writeStore(store);
   }
   return store;
-}
-
-export function upsertSubscriber(email: string, name: string): {
-  subscriber: Subscriber;
-  isNew: boolean;
-} {
-  const store = readStore();
-  const normalized = email.trim().toLowerCase();
-  const idx = store.subscribers.findIndex((s) => s.email === normalized);
-  const isNew = idx < 0;
-  const row: Subscriber = {
-    email: normalized,
-    name: name.trim() || "there",
-    subscribedAt:
-      idx >= 0
-        ? store.subscribers[idx]!.subscribedAt
-        : new Date().toISOString(),
-  };
-  if (idx >= 0) {
-    store.subscribers[idx] = row;
-  } else {
-    store.subscribers.push(row);
-  }
-  writeStore(store);
-  return { subscriber: row, isNew };
 }
 
 /**

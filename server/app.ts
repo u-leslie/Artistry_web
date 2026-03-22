@@ -12,7 +12,11 @@ import {
   queueDigestFromSanityEvent,
   scheduleDigestWhenFlushReady,
 } from "./process-digest.ts";
-import { readStore, upsertSubscriber } from "./store.ts";
+import { readStore } from "./store.ts";
+import {
+  listSubscribers,
+  upsertSubscriber,
+} from "./subscribers.ts";
 import { getSiteUrl } from "./site-url.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -187,7 +191,7 @@ export function createApp(): Express {
           .trim() ||
         "there";
 
-      const { subscriber: sub, isNew } = upsertSubscriber(email, guessed);
+      const { subscriber: sub, isNew } = await upsertSubscriber(email, guessed);
 
       if (!isNew) {
         res.json({
@@ -244,7 +248,7 @@ export function createApp(): Express {
     return token === expected;
   }
 
-  app.get("/api/admin/subscribers", (req, res) => {
+  app.get("/api/admin/subscribers", async (req, res) => {
     if (!verifyAdminSecret(req)) {
       res.status(401).json({
         ok: false,
@@ -254,8 +258,7 @@ export function createApp(): Express {
       return;
     }
 
-    const store = readStore();
-    const rows = store.subscribers;
+    const rows = await listSubscribers();
     const format =
       typeof req.query.format === "string" ? req.query.format : "json";
 

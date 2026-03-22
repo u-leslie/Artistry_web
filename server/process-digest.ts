@@ -4,6 +4,7 @@ import {
   removePendingItems,
   type PendingDigestItem,
 } from "./store.ts";
+import { listSubscribers } from "./subscribers.ts";
 import { getSanityServer, photoUrlFor } from "./sanity-server.ts";
 import { newContentEmailHtml, sendResendEmail } from "./emails.ts";
 import { getSiteUrl } from "./site-url.ts";
@@ -107,9 +108,11 @@ async function processDueDigestEmailsImpl(): Promise<{
   if (due.length === 0) {
     return { sent: 0, skipped: "no due items" };
   }
-  if (store.subscribers.length === 0) {
+
+  const subscribers = await listSubscribers();
+  if (subscribers.length === 0) {
     console.warn(
-      "[digest] skip: no subscribers in store — subscribe via the live site or copy data/store.json. Pending items kept.",
+      "[digest] skip: no subscribers — add people via the site (or Sanity newsletterSubscriber docs / store.json). Pending items kept.",
     );
     return { sent: 0, skipped: "no subscribers" };
   }
@@ -173,7 +176,7 @@ async function processDueDigestEmailsImpl(): Promise<{
   }
 
   let sent = 0;
-  for (const sub of store.subscribers) {
+  for (const sub of subscribers) {
     const html = newContentEmailHtml({
       name: sub.name,
       siteUrl,

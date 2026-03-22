@@ -55,6 +55,33 @@ export default defineConfig({
         ],
       },
       {
+        name: "newsletterSubscriber",
+        title: "Newsletter subscriber",
+        type: "document",
+        fields: [
+          {
+            name: "email",
+            title: "Email",
+            type: "string",
+            validation: (Rule: any) => Rule.required().email(),
+          },
+          {
+            name: "name",
+            title: "Name",
+            type: "string",
+          },
+          {
+            name: "subscribedAt",
+            title: "Subscribed at",
+            type: "datetime",
+            validation: (Rule: any) => Rule.required(),
+          },
+        ],
+        preview: {
+          select: { title: "email", subtitle: "name" },
+        },
+      },
+      {
         name: "photo",
         title: "Photo",
         type: "document",

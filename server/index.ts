@@ -5,6 +5,10 @@ import cron from "node-cron";
 import express from "express";
 import { createApp } from "./app.ts";
 import { processDueDigestEmails } from "./process-digest.ts";
+import {
+  migrateSubscribersFromFileToSanity,
+  seedSubscribersFromEnv,
+} from "./subscribers.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -30,6 +34,10 @@ const port = Number(process.env.PORT ?? 8787);
 
 app.listen(port, () => {
   console.log(`[artistry-api] listening on http://localhost:${port}`);
+  void (async () => {
+    await migrateSubscribersFromFileToSanity();
+    await seedSubscribersFromEnv();
+  })();
 });
 
 /**

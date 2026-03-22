@@ -1,4 +1,4 @@
-import type { Subscriber } from "./store.ts";
+import type { Subscriber } from "./subscribers.ts";
 
 function escapeHtml(s: string) {
   return s
