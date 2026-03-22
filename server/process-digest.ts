@@ -45,9 +45,10 @@ export function scheduleDigestWhenFlushReady(): void {
 }
 
 function digestDebounceMs(): number {
-  const raw = process.env.DIGEST_DEBOUNCE_MS ?? "180000";
+  /** Default 45s — batches draft+publish pairs; low enough that many hosts flush before sleep. */
+  const raw = process.env.DIGEST_DEBOUNCE_MS ?? "45000";
   const n = Number(raw);
-  return Number.isFinite(n) && n >= 0 ? n : 60_000;
+  return Number.isFinite(n) && n >= 0 ? n : 45_000;
 }
 
 /** Draft webhooks use `drafts.<uuid>`; published docs use `<uuid>`. Digest fetch targets published ids. */
@@ -74,6 +75,15 @@ export async function processDueDigestEmails(): Promise<{
   sent: number;
   skipped: string;
 }> {
+  const result = await processDueDigestEmailsImpl();
+  console.log("[digest]", result);
+  return result;
+}
+
+async function processDueDigestEmailsImpl(): Promise<{
+  sent: number;
+  skipped: string;
+}> {
   const store = readStore();
   const now = Date.now();
 
@@ -85,7 +95,10 @@ export async function processDueDigestEmails(): Promise<{
     ? new Date(store.digestFlushAt).getTime()
     : 0;
   if (flushAtMs > now) {
-    return { sent: 0, skipped: "digest debounce window" };
+    return {
+      sent: 0,
+      skipped: `digest debounce window (flush in ~${Math.ceil((flushAtMs - now) / 1000)}s)`,
+    };
   }
 
   const due = store.pendingDigest.filter(
@@ -95,12 +108,17 @@ export async function processDueDigestEmails(): Promise<{
     return { sent: 0, skipped: "no due items" };
   }
   if (store.subscribers.length === 0) {
-    removePendingItems(due);
+    console.warn(
+      "[digest] skip: no subscribers in store — subscribe via the live site or copy data/store.json. Pending items kept.",
+    );
     return { sent: 0, skipped: "no subscribers" };
   }
 
   const client = getSanityServer();
   if (!client) {
+    console.warn(
+      "[digest] skip: Sanity client missing — set SANITY_PROJECT_ID (and SANITY_DATASET) on the server.",
+    );
     return { sent: 0, skipped: "Sanity not configured" };
   }
 
@@ -150,6 +168,7 @@ export async function processDueDigestEmails(): Promise<{
   }
 
   if (!process.env.RESEND_API_KEY) {
+    console.warn("[digest] skip: RESEND_API_KEY is not set");
     return { sent: 0, skipped: "RESEND_API_KEY is not set" };
   }
 

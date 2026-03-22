@@ -297,14 +297,18 @@ export function createApp(): Express {
     return q === expected;
   }
 
-  app.post("/api/cron/digest", async (req, res) => {
+  async function runDigestCron(req: express.Request, res: express.Response) {
     if (!verifyCronSecret(req)) {
       res.status(401).json({ ok: false, error: "Unauthorized" });
       return;
     }
     const result = await processDueDigestEmails();
     res.json({ ok: true, ...result });
-  });
+  }
+
+  /** POST or GET — use GET with ?secret= for uptime/cron services that only support GET. */
+  app.post("/api/cron/digest", runDigestCron);
+  app.get("/api/cron/digest", runDigestCron);
 
   return app;
 }
