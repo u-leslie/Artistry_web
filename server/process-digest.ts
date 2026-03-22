@@ -50,6 +50,11 @@ function digestDebounceMs(): number {
   return Number.isFinite(n) && n >= 0 ? n : 60_000;
 }
 
+/** Draft webhooks use `drafts.<uuid>`; published docs use `<uuid>`. Digest fetch targets published ids. */
+function publishedDocumentId(id: string): string {
+  return id.startsWith("drafts.") ? id.slice("drafts.".length) : id;
+}
+
 export function queueDigestFromSanityEvent(
   _publishedAt: Date,
   item: { id: string; type: string },
@@ -57,7 +62,7 @@ export function queueDigestFromSanityEvent(
   if (item.type !== "photo" && item.type !== "poem") return;
   addPendingDigestItem(
     {
-      id: item.id,
+      id: publishedDocumentId(item.id),
       type: item.type as "photo" | "poem",
       sendAt: new Date().toISOString(),
     },
