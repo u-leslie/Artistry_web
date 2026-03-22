@@ -36,7 +36,8 @@ export default function ContactSection() {
   const [name, setName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const apiBase = (import.meta.env.VITE_API_BASE as string | undefined) ?? "";
+  /** Empty = same origin (use when the Node server serves `dist`; see server/index.ts). Otherwise set VITE_API_BASE to your API URL at build time. */
+  const apiBase = (import.meta.env.VITE_API_BASE as string | undefined)?.trim().replace(/\/$/, "") ?? "";
 
   const isValidEmail = (value: string) =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
