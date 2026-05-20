@@ -9,7 +9,7 @@ export function getPublicSiteUrlForEmail(): string {
 }
 
 /**
- * Optional base URL from env (previews, local dev). Not used for HTML email hrefs.
+ * Optional base URL from env (local dev). Not used for HTML email hrefs.
  *
  * Env mistakes we fix: extra quotes, `"https://..."` pasted inside another URL,
  * `https//` typo, `https://https://`, and `%22` from bad copy/paste.

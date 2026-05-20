@@ -37,7 +37,8 @@ function PhotoCard({ photo, index }: { photo: Photo; index: number }) {
           {photo.url && (
             <motion.img
               src={photo.url}
-              alt={photo.title}
+              // alt={photo.title}
+              alt=""
               className="w-full h-full object-cover grayscale"
               animate={{
                 scale: isHovered ? 1.05 : 1,
@@ -56,16 +57,12 @@ function PhotoCard({ photo, index }: { photo: Photo; index: number }) {
         </div>
 
         {/* Info */}
-        <div className="flex items-baseline justify-between">
-          <div className="flex items-baseline gap-3">
-            <span className="text-sm font-mono text-muted-foreground">
-              {photo.number}
-            </span>
+        <div className="flex items-baseline justify-end">
+          {/* <div className="flex items-baseline gap-3">
+            <span className="text-sm font-mono text-muted-foreground">{photo.number}</span>
             <span className="text-xl font-serif font-light">{photo.title}</span>
-          </div>
-          <span className="text-xs font-mono text-muted-foreground">
-            {photo.year}
-          </span>
+          </div> */}
+          <span className="text-xs font-mono text-muted-foreground">{photo.year}</span>
         </div>
       </div>
     </motion.div>

@@ -473,13 +473,13 @@ export function GalleryShuffleMode({
               className="min-w-0 flex-1"
             >
               <p className="font-mono text-[10px] uppercase tracking-[0.45em] text-[#a8a29e] mb-2 md:text-[11px]">
-                <span className="text-[#d6d3d1]">{current.number}</span>
-                <span className="mx-3 text-[#57534e]">·</span>
+                {/* <span className="text-[#d6d3d1]">{current.number}</span>
+                <span className="mx-3 text-[#57534e]">·</span> */}
                 <span>{current.year}</span>
               </p>
-              <h2 className="text-2xl font-light leading-tight tracking-tight text-[#fafaf9] md:text-4xl lg:text-5xl max-w-[90vw]">
+              {/* <h2 className="text-2xl font-light leading-tight tracking-tight text-[#fafaf9] md:text-4xl lg:text-5xl max-w-[90vw]">
                 {current.title}
-              </h2>
+              </h2> */}
             </motion.div>
           ) : (
             <motion.div
@@ -536,7 +536,8 @@ export function GalleryShuffleMode({
             >
               <motion.img
                 src={displayUrl}
-                alt={current.title}
+                // alt={current.title}
+                alt=""
                 className={`max-h-full max-w-full object-contain grayscale shadow-2xl shadow-black/50 transition-[filter,transform] duration-500 ${
                   !hiResReady && highUrl ? "blur-[0.5px] opacity-95" : ""
                 }`}

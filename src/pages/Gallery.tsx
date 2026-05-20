@@ -27,7 +27,8 @@ function GalleryPhotoCard({ photo, index }: { photo: Photo; index: number }) {
         {photo.url && (
           <motion.img
             src={photo.url}
-            alt={photo.title}
+            // alt={photo.title}
+            alt=""
             className="w-full h-full object-cover grayscale transition-all duration-700"
             animate={{
               scale: isHovered ? 1.1 : 1,
@@ -63,18 +64,12 @@ function GalleryPhotoCard({ photo, index }: { photo: Photo; index: number }) {
           transition={{ duration: 0.4 }}
           className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-foreground/90 to-transparent"
         >
-          <div className="flex items-baseline justify-between text-background">
-            <div className="flex items-baseline gap-3">
-              <span className="text-sm font-mono opacity-80">
-                {photo.number}
-              </span>
-              <span className="text-xl font-serif font-light">
-                {photo.title}
-              </span>
-            </div>
-            <span className="text-xs font-mono opacity-80">
-              {photo.year}
-            </span>
+          <div className="flex items-baseline justify-end text-background">
+            {/* <div className="flex items-baseline gap-3">
+              <span className="text-sm font-mono opacity-80">{photo.number}</span>
+              <span className="text-xl font-serif font-light">{photo.title}</span>
+            </div> */}
+            <span className="text-xs font-mono opacity-80">{photo.year}</span>
           </div>
         </motion.div>
       </div>

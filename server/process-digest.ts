@@ -5,7 +5,7 @@ import {
   type PendingDigestItem,
 } from "./store.ts";
 import { listSubscribers } from "./subscribers.ts";
-import { getSanityServer, photoUrlFor } from "./sanity-server.ts";
+import { getSanityServer } from "./sanity-server.ts";
 import { newContentEmailHtml, sendResendEmail } from "./emails.ts";
 
 let digestFlushTimer: ReturnType<typeof setTimeout> | null = null;
@@ -138,8 +138,8 @@ async function processDueDigestEmailsImpl(): Promise<{
 
   const photos =
     photoIds.length > 0
-      ? await client.fetch<{ _id: string; title: string; image: unknown }[]>(
-          `*[_type == "photo" && _id in $ids] | order(order asc) { _id, title, image }`,
+      ? await client.fetch<{ _id: string }[]>(
+          `*[_type == "photo" && _id in $ids] | order(order asc) { _id }`,
           { ids: photoIds },
         )
       : [];
@@ -152,16 +152,14 @@ async function processDueDigestEmailsImpl(): Promise<{
         )
       : [];
 
-  const photoPayload = photos.map((p) => ({
-    title: p.title || "Untitled",
-    imageUrl: photoUrlFor(p.image, 640),
-  }));
+  const photoPayload = photos.length > 0;
+  const newPhotoCount = photos.length;
 
   const poemPayload = poems.map((p) => ({
     title: p.title || "Untitled",
   }));
 
-  if (photoPayload.length === 0 && poemPayload.length === 0) {
+  if (!photoPayload && poemPayload.length === 0) {
     removePendingItems(due);
     return {
       sent: 0,
@@ -178,7 +176,8 @@ async function processDueDigestEmailsImpl(): Promise<{
   for (const sub of subscribers) {
     const html = newContentEmailHtml({
       name: sub.name,
-      photos: photoPayload,
+      hasNewPhotos: photoPayload,
+      newPhotoCount: photoPayload ? newPhotoCount : undefined,
       poems: poemPayload,
     });
     const r = await sendResendEmail({

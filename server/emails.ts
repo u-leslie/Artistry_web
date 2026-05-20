@@ -18,14 +18,17 @@ function escapeHtml(s: string) {
     .replaceAll('"', "&quot;");
 }
 
-/** Shared palette — white canvas; typography and logo unchanged */
+/** Shared palette — light, restrained */
 const E = {
-  bg: "#ffffff",
+  bg: "#fafaf9",
+  card: "#ffffff",
   ink: "#1c1917",
   inkSoft: "#44403c",
   muted: "#78716c",
-  accent: "#a8987a",
-  rule: "rgba(28,25,23,0.12)",
+  accent: "#8a7a62",
+  rule: "rgba(28,25,23,0.1)",
+  /** Soft wash behind poetry block */
+  wash: "#f6f4f1",
 };
 
 /**
@@ -43,16 +46,16 @@ function logoBlock(siteUrl: string) {
   const isCid = src.startsWith("cid:");
 
   return `
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 36px 0;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 32px 0;">
   <tr>
-    <td align="center" style="padding:0 0 24px 0;border-bottom:1px solid ${E.rule};">
-      <a href="${escapeHtml(siteUrl)}" style="text-decoration:none;display:inline-block;margin:0 auto 18px auto;line-height:0;">
-        <img src="${isCid ? `cid:${EMAIL_INLINE_LOGO_CID}` : escapeHtml(src)}" alt="Artistry" width="72" height="72" style="display:block;border:0;width:72px;max-width:72px;height:auto;mso-line-height-rule:exactly;line-height:72px;margin:0 auto;" />
+    <td align="center" style="padding:0 0 28px 0;border-bottom:1px solid ${E.rule};">
+      <a href="${escapeHtml(siteUrl)}" style="text-decoration:none;display:inline-block;margin:0 auto 16px auto;line-height:0;">
+        <img src="${isCid ? `cid:${EMAIL_INLINE_LOGO_CID}` : escapeHtml(src)}" alt="Artistry" width="64" height="64" style="display:block;border:0;width:64px;max-width:64px;height:auto;mso-line-height-rule:exactly;" />
       </a>
-      <div style="font-family:Georgia,'Times New Roman',serif;font-size:14px;letter-spacing:0.35em;text-transform:uppercase;color:#1c1917;font-weight:400;text-align:center;line-height:1.35;mso-line-height-rule:exactly;">
+      <div style="font-family:Georgia,'Times New Roman',serif;font-size:13px;letter-spacing:0.42em;text-transform:uppercase;color:${E.ink};font-weight:400;text-align:center;line-height:1.35;">
         Artistry
       </div>
-      <div style="font-family:Georgia,'Times New Roman',serif;font-size:16px;font-style:italic;color:${E.muted};margin-top:10px;letter-spacing:0.03em;text-align:center;line-height:1.4;">
+      <div style="font-family:Georgia,'Times New Roman',serif;font-size:15px;font-style:italic;color:${E.muted};margin-top:8px;text-align:center;line-height:1.45;">
         by Leslie
       </div>
     </td>
@@ -105,10 +108,10 @@ function emailShell(inner: string, pageTitle: string) {
 <body style="margin:0;padding:0;background:${E.bg};">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${E.bg};">
     <tr>
-      <td align="center" style="padding:52px 24px 64px 24px;background:${E.bg};">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;margin:0 auto;background:${E.bg};">
+      <td align="center" style="padding:48px 20px 56px 20px;background:${E.bg};">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;margin:0 auto;background:${E.card};border:1px solid ${E.rule};border-radius:2px;">
           <tr>
-            <td style="background:${E.bg};font-family:'Cormorant Garamond',Georgia,'Times New Roman',serif;color:${E.ink};font-size:18px;line-height:1.65;font-weight:400;">
+            <td style="padding:40px 36px 44px 36px;background:${E.card};font-family:'Cormorant Garamond',Georgia,'Times New Roman',serif;color:${E.ink};font-size:18px;line-height:1.62;font-weight:400;">
               ${inner}
             </td>
           </tr>
@@ -122,17 +125,45 @@ function emailShell(inner: string, pageTitle: string) {
 
 function footerLink(siteUrl: string) {
   return `
-  <p style="margin:40px 0 0 0;padding:28px 0 0 0;border-top:1px solid ${E.rule};font-family:'Source Sans 3',ui-sans-serif,system-ui,sans-serif;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:${E.muted};">
+  <p style="margin:36px 0 0 0;padding:24px 0 0 0;border-top:1px solid ${E.rule};font-family:'Source Sans 3',ui-sans-serif,system-ui,sans-serif;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:${E.muted};">
     <a href="${escapeHtml(siteUrl)}" style="color:${E.accent};text-decoration:none;border-bottom:1px solid ${E.accent};padding-bottom:2px;">Visit Artistry</a>
   </p>`;
 }
 
-function sectionLabel(text: string) {
-  return `<p style="margin:36px 0 12px 0;font-family:'Source Sans 3',sans-serif;font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:${E.muted};">${escapeHtml(text)}</p>`;
+function sectionEyebrow(text: string) {
+  return `<p style="margin:0 0 10px 0;font-family:'Source Sans 3',sans-serif;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:${E.muted};">${escapeHtml(text)}</p>`;
+}
+
+function digestDivider() {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:32px 0 28px 0;"><tr><td style="height:1px;background:${E.rule};line-height:1px;font-size:1px;">&nbsp;</td></tr></table>`;
 }
 
 function textLink(href: string, label: string) {
-  return `<a href="${escapeHtml(href)}" style="color:${E.accent};text-decoration:none;border-bottom:1px solid ${E.accent};padding-bottom:1px;font-family:'Source Sans 3',sans-serif;font-size:13px;letter-spacing:0.04em;">${escapeHtml(label)}</a>`;
+  return `<a href="${escapeHtml(href)}" style="color:${E.accent};text-decoration:none;border-bottom:1px solid ${E.accent};padding-bottom:1px;font-family:'Source Sans 3',sans-serif;font-size:14px;">${escapeHtml(label)}</a>`;
+}
+
+/** Solid CTA — table for Outlook-friendly padding */
+function primaryCtaButton(href: string, label: string) {
+  return `
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:22px 0 0 0;">
+  <tr>
+    <td align="left" bgcolor="${E.accent}" style="border-radius:2px;">
+      <a href="${escapeHtml(href)}" style="display:inline-block;padding:14px 28px;font-family:'Source Sans 3',sans-serif;font-size:11px;letter-spacing:0.16em;text-transform:uppercase;color:#ffffff;text-decoration:none;font-weight:500;">${escapeHtml(label)}</a>
+    </td>
+  </tr>
+</table>`;
+}
+
+/** Lighter second CTA for poetry */
+function outlineCtaButton(href: string, label: string) {
+  return `
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:18px 0 0 0;">
+  <tr>
+    <td align="left" style="border:1px solid ${E.accent};border-radius:2px;">
+      <a href="${escapeHtml(href)}" style="display:inline-block;padding:12px 24px;font-family:'Source Sans 3',sans-serif;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:${E.accent};text-decoration:none;font-weight:500;">${escapeHtml(label)}</a>
+    </td>
+  </tr>
+</table>`;
 }
 
 export function welcomeEmailHtml(opts: { name: string }) {
@@ -157,74 +188,82 @@ export function welcomeEmailHtml(opts: { name: string }) {
 
 export function newContentEmailHtml(opts: {
   name: string;
-  photos: { title: string; imageUrl: string }[];
+  /** Whether the digest includes new photos (no thumbnails or titles in email). */
+  hasNewPhotos: boolean;
+  /** Optional count for copy only; omit or 0 to use generic wording. */
+  newPhotoCount?: number;
   poems: { title: string }[];
 }) {
-  const { name, photos, poems } = opts;
+  const { name, hasNewPhotos, newPhotoCount, poems } = opts;
   const siteUrl = getPublicSiteUrlForEmail();
   const galleryUrl = `${siteUrl}/gallery`;
   const poetryHref = `${siteUrl}/#poetry`;
   const safeName = escapeHtml(name);
+  const galleryLinkLabel = galleryUrl.replace(/^https?:\/\//, "");
+  const hasPoems = poems.length > 0;
 
-  const photoRows: string[] = [];
-  const chunk = 3;
-  for (let i = 0; i < photos.length; i += chunk) {
-    const slice = photos.slice(i, i + chunk);
-    const cells: string[] = slice.map((p) => {
-      const img = p.imageUrl
-        ? `<a href="${escapeHtml(galleryUrl)}" style="text-decoration:none;display:block;">
-  <img src="${escapeHtml(p.imageUrl)}" alt="${escapeHtml(p.title)}" width="168" height="220" style="display:block;width:100%;max-width:168px;height:220px;border:0;background:${E.bg};box-shadow:0 8px 24px rgba(28,25,23,0.07);" />
-</a>`
-        : "";
-      return `<td width="33.33%" valign="top" style="padding:5px;">${img}<div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:13px;color:${E.muted};margin-top:10px;text-align:left;line-height:1.35;">${escapeHtml(p.title)}</div></td>`;
-    });
-    while (cells.length < 3) {
-      cells.push(`<td width="33.33%" style="padding:6px;">&nbsp;</td>`);
-    }
-    photoRows.push(`<tr>${cells.join("")}</tr>`);
+  let leadParagraph = "";
+  if (hasNewPhotos && hasPoems) {
+    leadParagraph = `<p style="margin:0 0 22px 0;color:${E.inkSoft};">I've been tending to the site again — <strong style="color:${E.ink};font-weight:600;">new photographs</strong> and <strong style="color:${E.ink};font-weight:600;">new poems</strong>, little pieces I couldn't quite keep to myself. I thought of you when I pressed publish, and I hope something here lands softly with you today.</p>`;
+  } else if (hasNewPhotos) {
+    leadParagraph = `<p style="margin:0 0 22px 0;color:${E.inkSoft};">I've added new work to the gallery — images that gathered meaning while I wasn't looking. I'd love for you to visit when you have a quiet moment; they're meant to be seen slowly, in their full light.</p>`;
+  } else {
+    leadParagraph = `<p style="margin:0 0 22px 0;color:${E.inkSoft};">There's new writing on the site — lines that took shape word by word. I thought of you while I set them live, and I hope one of them finds the corner of your heart it was written for.</p>`;
   }
 
-  const photoSection =
-    photos.length > 0
-      ? `
-              ${sectionLabel("Photographs")}
-              <p style="margin:0 0 22px 0;color:${E.inkSoft};">Take a peek at the latest images capturing small moments, thoughts, and colors that speak to the heart.</p>
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px 0;">
-    ${photoRows.join("")}
-              </table>
-              <p style="margin:0 0 8px 0;">${textLink(galleryUrl, "Open the full gallery →")}</p>`
-      : "";
+  const photoBlurb =
+    hasNewPhotos && typeof newPhotoCount === "number" && newPhotoCount > 1
+      ? `<p style="margin:0 0 14px 0;color:${E.inkSoft};line-height:1.65;">A handful of <strong style="color:${E.ink};font-weight:600;">${newPhotoCount} new photographs</strong> are waiting for you. Color and detail breathe more freely on the site than in any inbox — I'd be honored if you'd wander through when you can.</p>`
+      : hasNewPhotos
+        ? `<p style="margin:0 0 14px 0;color:${E.inkSoft};line-height:1.65;">A <strong style="color:${E.ink};font-weight:600;">new photograph</strong> has found its place in the gallery. I made it hoping it might rest your eyes for a breath or two — I'd love for you to see it there.</p>`
+        : "";
+
+  const photoSection = hasNewPhotos
+    ? `
+              ${digestDivider()}
+              ${sectionEyebrow("The gallery")}
+              ${photoBlurb}
+              <p style="margin:0 0 2px 0;color:${E.muted};font-family:'Source Sans 3',sans-serif;font-size:12px;line-height:1.55;letter-spacing:0.02em;font-style:italic;">Take your time. Nothing here is in a hurry.</p>
+              ${primaryCtaButton(galleryUrl, "Step into the gallery")}
+              <p style="margin:16px 0 0 0;font-size:13px;color:${E.muted};">${textLink(galleryUrl, galleryLinkLabel)}</p>`
+    : "";
 
   const poemItems = poems
     .map(
       (p) =>
         `<li style="margin:0 0 14px 0;list-style:none;padding:0;">
-  <a href="${escapeHtml(poetryHref)}" style="color:${E.ink};text-decoration:none;font-style:italic;font-size:19px;line-height:1.4;border-bottom:1px solid ${E.rule};display:inline;">“${escapeHtml(p.title)}”</a>
+  <a href="${escapeHtml(poetryHref)}" style="color:${E.ink};text-decoration:none;font-style:italic;font-size:19px;line-height:1.5;border-bottom:1px solid ${E.rule};display:inline;">${escapeHtml(p.title)}</a>
 </li>`,
     )
     .join("");
 
-  const poemSection =
-    poems.length > 0
-      ? `
-              ${sectionLabel("Poems")}
-              <p style="margin:0 0 18px 0;color:${E.inkSoft};">Here are the newest poems — click to read the full poem:</p>
-              <ul style="margin:0;padding:0;list-style:none;font-family:'Cormorant Garamond',Georgia,serif;">
+  const poemSection = hasPoems
+    ? `
+              ${digestDivider()}
+              ${sectionEyebrow("Poetry")}
+              <p style="margin:0 0 16px 0;color:${E.inkSoft};line-height:1.65;">If words feel like home, there is fresh poetry too — small letters to the world. Tap a title below; each opens in place, where the lines can stretch out properly.</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 4px 0;background:${E.wash};border:1px solid ${E.rule};border-radius:2px;">
+                <tr>
+                  <td style="padding:20px 22px;">
+                    <ul style="margin:0;padding:0;list-style:none;font-family:'Cormorant Garamond',Georgia,serif;">
     ${poemItems}
-              </ul>`
-      : "";
+                    </ul>
+                  </td>
+                </tr>
+              </table>
+              ${outlineCtaButton(poetryHref, "Read on the site")}`
+    : "";
 
   const inner = `
               ${logoBlock(siteUrl)}
               <div style="text-align:left;">
-              <p style="margin:0 0 8px 0;font-family:'Source Sans 3',sans-serif;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:${E.muted};">New work</p>
-              <p style="margin:0 0 22px 0;font-size:28px;line-height:1.2;font-weight:500;color:${E.ink};">Hi ${safeName},</p>
-              <p style="margin:0 0 28px 0;color:${E.inkSoft};">Something new has been added to <strong style="color:${E.ink};font-weight:600;">Artistry by Leslie</strong>! 🥹</p>
+              <p style="margin:0 0 10px 0;font-family:'Source Sans 3',sans-serif;font-size:10px;letter-spacing:0.24em;text-transform:uppercase;color:${E.muted};">For you</p>
+              <p style="margin:0 0 18px 0;font-size:32px;line-height:1.15;font-weight:500;color:${E.ink};letter-spacing:-0.025em;">Hi ${safeName},</p>
+              ${leadParagraph}
               ${photoSection}
               ${poemSection}
-              <p style="margin:32px 0 20px 0;color:${E.inkSoft};">I hope these little creations bring a spark of inspiration or a moment of calm to your day.</p>
-              <p style="margin:0 0 28px 0;color:${E.inkSoft};">Thank you for being part of this journey.</p>
-              <p style="margin:0;font-style:italic;font-size:19px;color:${E.ink};">With love,<br/>Leslie</p>
+              <p style="margin:${hasNewPhotos || hasPoems ? "34px" : "8px"} 0 16px 0;color:${E.inkSoft};line-height:1.65;">Wherever you are today, thank you for letting me visit your inbox. It means more than a short note can say.</p>
+              <p style="margin:0;font-style:italic;font-size:19px;color:${E.ink};line-height:1.45;">With love,<br/><span style="font-size:17px;color:${E.inkSoft};">Leslie</span></p>
               ${footerLink(siteUrl)}
               </div>
   `;
