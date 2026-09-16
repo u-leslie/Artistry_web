@@ -16,7 +16,6 @@ dist-ssr
 tsconfig.tsbuildinfo
 
 # Editor directories and files
-.vscode/*
 !.vscode/extensions.json
 .idea
 .DS_Store
@@ -27,7 +26,6 @@ tsconfig.tsbuildinfo
 *.sw?
 
 # Environment variables
-.env*
 
 # Local API store (subscribers + digest queue)
 data/store.json
@@ -44,3 +42,4 @@ data/store.json
 
 scripts/
 deploy/
+config.bat

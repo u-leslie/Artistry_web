@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "sanity dev",
-    "start": "sanity start",
-    "build": "sanity build",
+    "dev": "node init && sanity dev",
+    "start": "node init && sanity start",
+    "build": "node init && sanity build",
     "deploy": "sanity deploy"
   },
   "dependencies": {

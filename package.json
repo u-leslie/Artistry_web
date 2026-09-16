@@ -7,13 +7,13 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "vite",
-    "dev:api": "tsx watch server/index.ts",
+    "dev": "node init && vite",
+    "dev:api": "node init && tsx watch server/index.ts",
     "preview": "vite preview",
-    "build": "tsc -b && vite build",
-    "build:email-gif": "node scripts/generate-email-logo-gif.cjs",
-    "start": "tsx server/index.ts",
-    "start:server": "tsx server/index.ts",
+    "build": "node init && tsc -b && vite build",
+    "build:email-gif": "node init && node scripts/generate-email-logo-gif.cjs",
+    "start": "node init && tsx server/index.ts",
+    "start:server": "node init && tsx server/index.ts",
     "lint": "eslint .",
     "prettier-fix": "prettier --write .",
     "prettier-check": "prettier --check ."
